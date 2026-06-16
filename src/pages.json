@@ -17,6 +17,24 @@
       "style": {
         "navigationBarTitleText": "我的"
       }
+    },
+    {
+      "path": "pages/agreement/user",
+      "style": {
+        "navigationBarTitleText": "用户协议"
+      }
+    },
+    {
+      "path": "pages/agreement/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私保护协议"
+      }
+    },
+    {
+      "path": "pages/agreement/recharge",
+      "style": {
+        "navigationBarTitleText": "平台充值协议"
+      }
     }
   ],
   "globalStyle": {

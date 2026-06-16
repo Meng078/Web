@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 const phoneNumber = ref("");
 const verificationCode = ref("");
@@ -8,6 +8,24 @@ const loading = ref(false);
 const countdown = ref(0);
 
 let timer = null;
+
+// 手机号校验
+const phoneError = computed(() => {
+  if (!phoneNumber.value) return "";
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) {
+    return "手机号格式不正确";
+  }
+  return "";
+});
+
+// 验证码校验
+const codeError = computed(() => {
+  if (!verificationCode.value) return "";
+  if (!/^\d{4,6}$/.test(verificationCode.value)) {
+    return "验证码格式不正确";
+  }
+  return "";
+});
 
 const getVerificationCode = () => {
   if (!phoneNumber.value) {
@@ -49,6 +67,10 @@ const submitForm = () => {
     uni.showToast({ title: "请输入验证码", icon: "none" });
     return;
   }
+  if (!/^\d{4,6}$/.test(verificationCode.value)) {
+    uni.showToast({ title: "验证码格式不正确", icon: "none" });
+    return;
+  }
   if (!isagree.value) {
     uni.showToast({ title: "请先同意协议", icon: "none" });
     return;
@@ -63,6 +85,13 @@ const submitForm = () => {
       uni.reLaunch({ url: "/pages/index/index" });
     }, 1500);
   }, 1500);
+};
+
+// 跳转到协议页面
+const goToAgreement = (type) => {
+  uni.navigateTo({
+    url: `/pages/agreement/${type}`,
+  });
 };
 </script>
 
@@ -84,6 +113,7 @@ const submitForm = () => {
           v-model="phoneNumber"
         />
       </view>
+      <view class="error-tip" v-if="phoneError">{{ phoneError }}</view>
 
       <!-- 验证码输入 -->
       <view class="bind-setinfo-item">
@@ -102,6 +132,7 @@ const submitForm = () => {
           {{ countdown > 0 ? `${countdown}s` : "获取验证码" }}
         </view>
       </view>
+      <view class="error-tip" v-if="codeError">{{ codeError }}</view>
 
       <!-- 协议复选框 -->
       <view class="agreement-box">
@@ -112,9 +143,11 @@ const submitForm = () => {
         </checkbox-group>
         <view class="agreement-text">
           我已阅读并同意
-          <text class="agreement-link">《用户协议》</text>
+          <text class="agreement-link" @click="goToAgreement('user')">《用户协议》</text>
+          、
+          <text class="agreement-link" @click="goToAgreement('privacy')">《隐私保护协议》</text>
           和
-          <text class="agreement-link">《隐私政策》</text>
+          <text class="agreement-link" @click="goToAgreement('recharge')">《平台充值协议》</text>
         </view>
       </view>
 
@@ -218,5 +251,13 @@ const submitForm = () => {
 
 .btn-submit::after {
   border: none;
+}
+
+.error-tip {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  margin-top: -20rpx;
+  margin-bottom: 20rpx;
+  padding-left: 10rpx;
 }
 </style>
