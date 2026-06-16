@@ -1,0 +1,124 @@
+// @/styles/agreement.scss
+
+.agreement-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #eff2f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+.agreement-container {
+  width: 100%;
+  max-width: 1400px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+
+  /* 关键修改：固定容器高度，防止页面被撑开 */
+  height: calc(100vh - 40px);
+  overflow: hidden; /* 确保超出部分在内部滚动 */
+}
+
+.page-header {
+  flex-shrink: 0; /* 头部固定不缩放 */
+  padding: 20px 40px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+
+  .header-content {
+    display: flex;
+    /* 关键修改：左对齐 */
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+
+    .date-group {
+      display: flex;
+      /* 关键修改：日期单行显示 */
+      flex-direction: row;
+      align-items: center;
+      gap: 16px; /* 两个日期之间的间距 */
+
+      .agreement-date {
+        color: #909399;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: nowrap; /* 防止日期本身换行 */
+      }
+    }
+  }
+}
+
+.agreement-scroll {
+  flex: 1; /* 关键修改：填满剩余高度 */
+  min-height: 0; /* 关键修复：允许 flex 子项收缩，解决内容不显示/截断问题 */
+  box-sizing: border-box;
+  padding: 24px 32px; /* 优化内边距 */
+}
+
+.agreement-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #303133;
+  /* 两端对齐，让文字填满区域 */
+  text-align: justify;
+  text-justify: inter-ideograph;
+
+  .agreement-section {
+    margin-bottom: 24px;
+    &:last-child { margin-bottom: 0; }
+
+    .section-header {
+      margin-bottom: 12px;
+
+      .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1a1a1a;
+        padding-left: 16px;
+        position: relative;
+        line-height: 1.2;
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 3px;
+          bottom: 3px;
+          width: 4px;
+          background-color: #409eff;
+          border-radius: 2px;
+        }
+      }
+    }
+
+    .section-content {
+      display: block;
+      margin-bottom: 12px;
+      color: #555555;
+      /* 强制换行逻辑，确保长单词不溢出 */
+      word-break: break-all;
+      overflow-wrap: break-word;
+    }
+  }
+}
+
+.scroll-bottom {
+  height: 40px; /* 底部留白 */
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 768px) {
+  .agreement-page { padding: 0; align-items: flex-start; background-color: #fff; }
+  .agreement-container { height: 100vh; max-width: none; border-radius: 0; box-shadow: none; }
+  .page-header { padding: 15px 20px; }
+  .agreement-scroll { padding: 15px 20px; }
+}

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import {computed, ref} from "vue";
 
 const phoneNumber = ref("");
 const verificationCode = ref("");
@@ -9,44 +9,28 @@ const countdown = ref(0);
 
 let timer = null;
 
-// 手机号校验
 const phoneError = computed(() => {
   if (!phoneNumber.value) return "";
-  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) {
-    return "手机号格式不正确";
-  }
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) return "手机号格式不正确";
   return "";
 });
 
-// 验证码校验
 const codeError = computed(() => {
   if (!verificationCode.value) return "";
-  if (!/^\d{4,6}$/.test(verificationCode.value)) {
-    return "验证码格式不正确";
-  }
+  if (!/^\d{4,6}$/.test(verificationCode.value)) return "验证码格式不正确";
   return "";
 });
 
 const getVerificationCode = () => {
-  if (!phoneNumber.value) {
-    uni.showToast({ title: "请输入手机号", icon: "none" });
-    return;
-  }
-  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) {
-    uni.showToast({ title: "手机号格式不正确", icon: "none" });
-    return;
-  }
+  if (!phoneNumber.value) return uni.showToast({ title: "请输入手机号", icon: "none" });
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) return uni.showToast({ title: "手机号格式不正确", icon: "none" });
   if (countdown.value > 0) return;
 
-  // TODO: 调用发送验证码接口
   uni.showToast({ title: "验证码已发送", icon: "none" });
   countdown.value = 60;
   timer = setInterval(() => {
     countdown.value--;
-    if (countdown.value <= 0) {
-      clearInterval(timer);
-      timer = null;
-    }
+    if (countdown.value <= 0) { clearInterval(timer); timer = null; }
   }, 1000);
 };
 
@@ -55,209 +39,307 @@ const agreeChange = (e) => {
 };
 
 const submitForm = () => {
-  if (!phoneNumber.value) {
-    uni.showToast({ title: "请输入手机号", icon: "none" });
-    return;
-  }
-  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) {
-    uni.showToast({ title: "手机号格式不正确", icon: "none" });
-    return;
-  }
-  if (!verificationCode.value) {
-    uni.showToast({ title: "请输入验证码", icon: "none" });
-    return;
-  }
-  if (!/^\d{4,6}$/.test(verificationCode.value)) {
-    uni.showToast({ title: "验证码格式不正确", icon: "none" });
-    return;
-  }
-  if (!isagree.value) {
-    uni.showToast({ title: "请先同意协议", icon: "none" });
-    return;
-  }
+  if (phoneError.value || codeError.value) return;
+  if (!phoneNumber.value) return uni.showToast({ title: "请输入手机号", icon: "none" });
+  if (!verificationCode.value) return uni.showToast({ title: "请输入验证码", icon: "none" });
+  if (!isagree.value) return uni.showToast({ title: "请先同意协议", icon: "none" });
+
   loading.value = true;
-  // TODO: 调用登录接口
   setTimeout(() => {
     loading.value = false;
     uni.showToast({ title: "登录成功", icon: "success" });
-    // 登录成功后跳转首页
-    setTimeout(() => {
-      uni.reLaunch({ url: "/pages/index/index" });
-    }, 1500);
+    setTimeout(() => uni.reLaunch({ url: "/pages/index/index" }), 1500);
   }, 1500);
 };
 
-// 跳转到协议页面
 const goToAgreement = (type) => {
-  uni.navigateTo({
-    url: `/pages/agreement/${type}`,
-  });
+  uni.navigateTo({ url: `/pages/agreement/${type}` });
+};
+
+const goBack = () => {
+  uni.navigateBack();
 };
 </script>
 
 <template>
-  <view class="login-container">
-    <view class="login-header">
-      <image class="login-logo" src="/static/logo.png" mode="aspectFit" />
-      <text class="login-title">欢迎登录</text>
+  <view class="login-page">
+    <!-- 背景遮罩与装饰 -->
+    <view class="bg-decoration">
+      <view class="bg-circle bg-circle-1"></view>
+      <view class="bg-circle bg-circle-2"></view>
     </view>
 
-    <view class="login-form">
-      <!-- 手机号输入 -->
-      <view class="bind-setinfo-item">
-        <input
-          class="bind-setinfo-input"
-          type="tel"
-          placeholder="请输入手机号"
-          maxlength="11"
-          v-model="phoneNumber"
-        />
-      </view>
-      <view class="error-tip" v-if="phoneError">{{ phoneError }}</view>
+    <!-- 关闭按钮 -->
+    <view class="page-close" @click="goBack">
+      <text class="close-icon">✕</text>
+    </view>
 
-      <!-- 验证码输入 -->
-      <view class="bind-setinfo-item">
-        <input
-          class="bind-setinfo-input code-input"
-          type="number"
-          placeholder="请输入验证码"
-          maxlength="6"
-          v-model="verificationCode"
-        />
-        <view
-          class="verification-code"
-          :class="{ disabled: countdown > 0 }"
-          @click="getVerificationCode"
-        >
-          {{ countdown > 0 ? `${countdown}s` : "获取验证码" }}
+    <!-- 登录卡片 -->
+    <view class="login-card">
+      <!-- 头部 -->
+      <view class="card-header">
+        <text class="card-title">欢迎登录</text>
+        <text class="card-subtitle">登录后享受更多专属服务</text>
+      </view>
+
+      <!-- 表单 -->
+      <view class="form-area">
+        <!-- 手机号 -->
+        <view class="form-group" :class="{ 'is-error': phoneError }">
+          <view class="input-wrapper">
+            <input class="form-input" type="tel" placeholder="请输入手机号" maxlength="11" v-model="phoneNumber" />
+          </view>
+          <view class="error-msg" v-if="phoneError">
+            <text class="error-text">{{ phoneError }}</text>
+          </view>
         </view>
-      </view>
-      <view class="error-tip" v-if="codeError">{{ codeError }}</view>
 
-      <!-- 协议复选框 -->
-      <view class="agreement-box">
-        <checkbox-group @change="agreeChange">
-          <label>
-            <checkbox value="agree" :checked="isagree" />
-          </label>
-        </checkbox-group>
-        <view class="agreement-text">
-          我已阅读并同意
-          <text class="agreement-link" @click="goToAgreement('user')">《用户协议》</text>
-          、
-          <text class="agreement-link" @click="goToAgreement('privacy')">《隐私保护协议》</text>
-          和
-          <text class="agreement-link" @click="goToAgreement('recharge')">《平台充值协议》</text>
+        <!-- 验证码 -->
+        <view class="form-group" :class="{ 'is-error': codeError }">
+          <view class="input-wrapper">
+            <input class="form-input" type="number" placeholder="请输入验证码" maxlength="6" v-model="verificationCode" />
+            <view class="code-btn" :class="{ 'btn-disabled': countdown > 0 }" @click="getVerificationCode">
+              <text class="code-text">{{ countdown > 0 ? `${countdown}s` : "获取验证码" }}</text>
+            </view>
+          </view>
+          <view class="error-msg" v-if="codeError">
+            <text class="error-text">{{ codeError }}</text>
+          </view>
         </view>
-      </view>
 
-      <!-- 登录按钮 -->
-      <button class="btn-submit" @click="submitForm" :loading="loading">
-        确定登录
-      </button>
+        <!-- 协议 -->
+        <view class="agreement-area">
+          <checkbox-group @change="agreeChange">
+            <label class="checkbox-label">
+              <checkbox value="agree" :checked="isagree" color="#6366f1" style="transform: scale(0.8)" />
+            </label>
+          </checkbox-group>
+          <view class="agreement-text">
+            <text>我已阅读并同意 </text>
+            <text class="link" @click="goToAgreement('user')">《用户协议》</text>
+            <text>、</text>
+            <text class="link" @click="goToAgreement('privacy')">《隐私保护协议》</text>
+            <text>和 </text>
+            <text class="link" @click="goToAgreement('recharge')">《平台充值协议》</text>
+          </view>
+        </view>
+
+        <!-- 提交按钮 -->
+        <button class="submit-btn" :class="{ 'btn-active': isagree && !loading }" @click="submitForm" :loading="loading" :disabled="!isagree">
+          <text class="btn-text">立即登录</text>
+        </button>
+      </view>
     </view>
   </view>
 </template>
 
-<style scoped>
-.login-container {
+<style scoped lang="scss">
+.login-page {
   min-height: 100vh;
-  padding: 0 60rpx;
-  background-color: #ffffff;
+  background-color: #f8fafc;
   display: flex;
-  flex-direction: column;
-}
-
-.login-header {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  margin-top: 160rpx;
-  margin-bottom: 80rpx;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.login-logo {
-  width: 180rpx;
-  height: 180rpx;
-  margin-bottom: 30rpx;
+/* 背景装饰 */
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+.bg-circle-1 {
+  width: 400px;
+  height: 400px;
+  background: #6366f1;
+  top: -100px;
+  right: -100px;
+}
+.bg-circle-2 {
+  width: 300px;
+  height: 300px;
+  background: #10b981;
+  bottom: -50px;
+  left: -50px;
 }
 
-.login-title {
-  font-size: 44rpx;
+/* 关闭按钮 */
+.page-close {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10;
+  cursor: pointer;
+  &:active { opacity: 0.7; }
+}
+.close-icon {
+  font-size: 20px;
+  color: #64748b;
   font-weight: bold;
-  color: #333333;
 }
 
-.login-form {
+/* 登录卡片 */
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  animation: cardFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 头部 */
+.card-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.card-title {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+.card-subtitle {
+  display: block;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* 表单区域 */
+.form-area {
   width: 100%;
 }
-
-.bind-setinfo-item {
+.form-group {
+  margin-bottom: 16px;
+}
+.input-wrapper {
   display: flex;
   align-items: center;
-  border-bottom: 1rpx solid #eeeeee;
-  margin-bottom: 30rpx;
-  padding: 20rpx 0;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0 16px;
+  height: 52px;
+  transition: all 0.25s ease;
+
+  &:focus-within {
+    background: #ffffff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+  &.is-error {
+    background: #fef2f2;
+    border-color: #ef4444;
+  }
 }
 
-.bind-setinfo-input {
+.form-input {
   flex: 1;
-  font-size: 30rpx;
-  height: 60rpx;
+  font-size: 15px;
+  color: #1e293b;
+  background: transparent;
 }
 
-.code-input {
-  flex: 1;
+.error-msg {
+  margin-top: 6px;
+  padding-left: 4px;
+}
+.error-text {
+  font-size: 12px;
+  color: #ef4444;
 }
 
-.verification-code {
-  color: #007aff;
-  font-size: 28rpx;
+/* 验证码按钮 */
+.code-btn {
+  padding: 8px 14px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:active { transform: scale(0.95); }
+  &.btn-disabled {
+    background: #f1f5f9;
+    .code-text { color: #94a3b8; }
+  }
+}
+.code-text {
+  font-size: 13px;
+  color: #6366f1;
+  font-weight: 600;
   white-space: nowrap;
-  padding: 10rpx 20rpx;
-  border-left: 1rpx solid #eeeeee;
 }
 
-.verification-code.disabled {
-  color: #999999;
-}
-
-.agreement-box {
+/* 协议 */
+.agreement-area {
   display: flex;
-  align-items: center;
-  margin: 30rpx 0 50rpx;
+  align-items: flex-start;
+  margin: 24px 0 32px;
+  gap: 8px;
 }
-
 .agreement-text {
-  font-size: 24rpx;
-  color: #666666;
-  margin-left: 10rpx;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  flex: 1;
+}
+.link {
+  color: #6366f1;
+  cursor: pointer;
+  &:active { opacity: 0.8; }
 }
 
-.agreement-link {
-  color: #007aff;
-}
-
-.btn-submit {
+/* 提交按钮 */
+.submit-btn {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  background-color: #007aff;
+  height: 52px;
+  line-height: 52px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
   color: #ffffff;
-  font-size: 32rpx;
-  border-radius: 44rpx;
-  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+
+  &::after { border: none; }
+
+  &.btn-active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+    cursor: pointer;
+    &:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); }
+    &:hover { filter: brightness(1.05); }
+  }
+
+  .btn-text { color: inherit; }
 }
 
-.btn-submit::after {
-  border: none;
-}
-
-.error-tip {
-  font-size: 24rpx;
-  color: #ff4d4f;
-  margin-top: -20rpx;
-  margin-bottom: 20rpx;
-  padding-left: 10rpx;
+/* PC端响应式微调 */
+@media (max-width: 768px) {
+  .login-card {
+    max-width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 40px 20px;
+  }
+  .page-close { display: none; }
 }
 </style>
