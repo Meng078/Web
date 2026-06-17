@@ -1,5 +1,5 @@
 <script setup>
-import {computed, ref} from "vue";
+import {computed, onUnmounted, ref} from "vue";
 
 const phoneNumber = ref("");
 const verificationCode = ref("");
@@ -33,6 +33,10 @@ const getVerificationCode = () => {
     if (countdown.value <= 0) { clearInterval(timer); timer = null; }
   }, 1000);
 };
+
+onUnmounted(() => {
+  if (timer) { clearInterval(timer); timer = null; }
+});
 
 const agreeChange = (e) => {
   isagree.value = e.detail.value.length > 0;

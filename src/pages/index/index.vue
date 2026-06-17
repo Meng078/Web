@@ -15,12 +15,16 @@ const goToWriteLetter = () => {
   uni.navigateTo({ url: "/pages/write-letter/index" });
 };
 
+const showComingSoon = () => {
+  uni.showToast({ title: '功能开发中...', icon: 'none' });
+};
+
 const navItems = ref([
   { text: "登录", desc: "手机号快捷登录", action: goToLogin, gradient: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
   { text: "我的", desc: "个人中心", action: goToMine, gradient: "linear-gradient(135deg, #06b6d4, #6366f1)" },
   { text: "写信", desc: "发送短信", action: goToWriteLetter, gradient: "linear-gradient(135deg, #10b981, #059669)" },
-  { text: "文档", desc: "开发指南与API", action: () => {}, gradient: "linear-gradient(135deg, #10b981, #059669)" },
-  { text: "设置", desc: "偏好与系统配置", action: () => {}, gradient: "linear-gradient(135deg, #f59e0b, #d97706)" },
+  { text: "文档", desc: "开发指南与API", action: showComingSoon, gradient: "linear-gradient(135deg, #10b981, #059669)" },
+  { text: "设置", desc: "偏好与系统配置", action: showComingSoon, gradient: "linear-gradient(135deg, #f59e0b, #d97706)" },
 ]);
 </script>
 
@@ -37,7 +41,7 @@ const navItems = ref([
       <view class="nav-section">
         <view class="section-header">
           <text class="section-title">快捷功能</text>
-          <text class="section-more">查看更多 ›</text>
+          <text class="section-more" @click="showComingSoon">查看更多 ›</text>
         </view>
         <view class="nav-grid">
           <view class="nav-card" v-for="(item, index) in navItems" :key="index" @click="item.action">

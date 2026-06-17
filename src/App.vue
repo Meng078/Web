@@ -31,7 +31,6 @@ page {
 
 /* 安全区域适配 */
 page {
-  padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 }
 

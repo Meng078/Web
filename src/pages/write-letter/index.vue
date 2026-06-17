@@ -158,11 +158,11 @@ const now = new Date();
 const currentYear = now.getFullYear();
 
 // 各列数据源
-const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
-const hours = Array.from({ length: 24 }, (_, i) => i);
-const minutes = Array.from({ length: 60 }, (_, i) => i);
-const seconds = Array.from({ length: 60 }, (_, i) => i);
+const years = Array.from({length: 11}, (_, i) => currentYear - 5 + i);
+const months = Array.from({length: 12}, (_, i) => i + 1);
+const hours = Array.from({length: 24}, (_, i) => i);
+const minutes = Array.from({length: 60}, (_, i) => i);
+const seconds = Array.from({length: 60}, (_, i) => i);
 
 // 当前选中的各列索引
 const selectedYearIndex = ref(5); // 默认当前年份（-5到+5，索引5为当前年）
@@ -180,7 +180,7 @@ const days = computed(() => {
   const year = years[selectedYearIndex.value];
   const month = months[selectedMonthIndex.value];
   const count = getDaysInMonth(year, month);
-  return Array.from({ length: count }, (_, i) => i + 1);
+  return Array.from({length: count}, (_, i) => i + 1);
 });
 
 // 多列选择器的 range（带中文单位标识）
@@ -217,7 +217,7 @@ const selectedDateTime = computed(() => {
 
 // 列值变化时更新状态（用于动态调整天数）
 const onColumnChange = (e) => {
-  const { column, value } = e.detail;
+  const {column, value} = e.detail;
   if (column === 0) {
     selectedYearIndex.value = value;
     // 当年变化时，确保天索引不越界
@@ -255,7 +255,7 @@ const phoneError = computed(() => {
 });
 
 const contentError = computed(() => {
-  if (!messageContent.value) return '';
+  if (!messageContent.value) return '请输入信件内容';
   return '';
 });
 
@@ -271,15 +271,15 @@ const agreeChange = (e) => {
 };
 
 const handleSend = () => {
-  if (!isagree.value) return uni.showToast({ title: '请先同意相关协议', icon: 'none' });
-  if (!phoneNum.value) return uni.showToast({ title: '请输入收件人手机号', icon: 'none' });
-  if (!/^1[3-9]\d{9}$/.test(phoneNum.value)) return uni.showToast({ title: '手机号格式不正确', icon: 'none' });
-  if (!messageContent.value) return uni.showToast({ title: '请输入信件内容', icon: 'none' });
+  if (!isagree.value) return uni.showToast({title: '请先同意相关协议', icon: 'none'});
+  if (!phoneNum.value) return uni.showToast({title: '请输入收件人手机号', icon: 'none'});
+  if (!/^1[3-9]\d{9}$/.test(phoneNum.value)) return uni.showToast({title: '手机号格式不正确', icon: 'none'});
+  if (!messageContent.value) return uni.showToast({title: '请输入信件内容', icon: 'none'});
 
   loading.value = true;
   setTimeout(() => {
     loading.value = false;
-    uni.showToast({ title: '提交成功，正在发送...', icon: 'success' });
+    uni.showToast({title: '提交成功，正在发送...', icon: 'success'});
     setTimeout(() => {
       uni.navigateBack();
     }, 1500);
@@ -287,11 +287,11 @@ const handleSend = () => {
 };
 
 const goToAgreement = (type) => {
-  uni.navigateTo({ url: `/pages/agreement/${type}` });
+  uni.navigateTo({url: `/pages/agreement/${type}`});
 };
 
 const navigateBack = () => {
-  uni.reLaunch({ url: '/pages/index/index' });
+  uni.reLaunch({url: '/pages/index/index'});
 };
 </script>
 
@@ -642,35 +642,70 @@ const navigateBack = () => {
 }
 </style>
 
-<!-- 新的全局样式：解决多列宽度不足问题 -->
+<!-- 放在 <script setup> 后面，注意这里不要写 scoped 属性，必须是全局样式 -->
 <style lang="scss">
-.uni-picker-view-wrapper {
-  /* 1. 移除固定宽度，允许宽度随内容撑开 */
-  width: 360px !important;
+/* ========================================== */
+/*      修复：解除 Uni-app Picker 300px 限制    */
+/* ========================================== */
 
-  /* 2. 设置足够大的最小宽度，确保 6 列内容不被挤压 */
+/* 1. 针对截图中的报错源：覆盖大屏下的外壳宽度限制 */
+@media screen and (min-width: 500px) and (min-height: 500px) {
+  .uni-picker-container .uni-picker-custom {
+    /* 将限制放宽到 400px，以容纳 6 列数据 */
+    width: 360px !important;
+    min-width: 360px !important;
+    /* 防止在小屏幕上溢出屏幕边缘 */
+    max-width: 90% !important;
+
+    /* 调整垂直定位，保证居中效果 */
+    left: 50% !important;
+    right: auto !important;
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+/* 2. 优化 Picker 内部排列（确保内部内容能正确铺开） */
+.uni-picker-view-wrapper {
+  width: 360px !important;       /* 内容区固定 360px */
   min-width: 360px !important;
 
   .uni-picker-view {
-    /* 启用 Flex 布局，让所有列横向排列 */
-    display: flex !important;
+    display: flex !important;  /* 强制 Flex 横向排列 */
 
     .uni-picker-view-col {
-      /* 3. 每列固定宽度 60px（360px ÷ 6列） */
-      width: 60px !important;
+      width: 60px !important; /* 6列 x 60px = 360px */
+      border-right: 1px solid #f0f0f0; /* 可选：列分隔线 */
 
       .uni-picker-item {
-        /* 4. 强制单行显示，禁止换行 */
-        white-space: nowrap !important;
-
-        /* 5. 居中对齐，稍微调小一点字体以适应更多列 */
+        white-space: nowrap !important; /* 禁止换行 */
         text-align: center !important;
-        font-size: 12px !important;
+        font-size: 12px !important;      /* 适当缩小字体 */
+        color: #333 !important;
 
-        /* 减少列间距，节省空间 */
-        padding: 0 2px !important;
+        /* 处理文字过长（如年份） */
+        overflow: hidden;
       }
     }
+
+    /* 最后一列去掉右边框 */
+    .uni-picker-view-col:last-child {
+      border-right: none !important;
+    }
   }
+}
+
+/* ========================================== */
+/*      修复：Toast 提示文字显示不全           */
+/* ========================================== */
+
+.uni-toast {
+  max-width: 360px !important;
+  width: 200px !important;
+}
+
+.uni-toast .uni-toast__title {
+  white-space: nowrap !important;
 }
 </style>
