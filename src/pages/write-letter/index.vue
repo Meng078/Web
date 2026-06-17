@@ -2,27 +2,20 @@
   <view class="letter-page">
     <!-- 背景装饰 -->
     <view class="bg-decoration">
-      <view class="bg-circle bg-circle-1"> </view>
-      <view class="bg-circle bg-circle-2"> </view>
+      <view class="bg-circle bg-circle-1"></view>
+      <view class="bg-circle bg-circle-2"></view>
     </view>
 
     <!-- 内容滚动区 -->
     <scroll-view scroll-y class="content-area" :show-scrollbar="false">
       <!-- 状态栏安全距离占位 -->
-      <view class="safe-area-top"> </view>
-
-      <!-- 顶部返回导航栏 -->
-      <view class="nav-bar">
-        <view class="nav-back" @click="navigateBack">
-          <text class="nav-back-icon">←</text>
-          <text class="nav-back-text">返回</text>
-        </view>
-      </view>
+      <view class="safe-area-top"></view>
 
       <!-- 卡片容器（主体与温馨提示已合并至此） -->
       <view class="letter-card">
-        <!-- 头部信息 -->
+        <!-- 头部信息：返回 + 标题同行 -->
         <view class="card-header">
+          <text class="back-text" @click="navigateBack">返回</text>
           <text class="card-title">书写你的思念</text>
         </view>
 
@@ -132,7 +125,7 @@
         </view>
 
         <!-- 分割线 -->
-        <view class="section-divider"> </view>
+        <view class="section-divider"></view>
 
         <!-- 底部温馨提示 -->
         <view class="tips-section">
@@ -146,7 +139,7 @@
         </view>
       </view>
 
-      <view style="height: 50px"> </view>
+      <view style="height: 50px"></view>
     </scroll-view>
   </view>
 </template>
@@ -227,7 +220,7 @@ const onColumnChange = (e) => {
   const { column, value } = e.detail;
   if (column === 0) {
     selectedYearIndex.value = value;
-    // 当月变化时，确保天索引不越界
+    // 当年变化时，确保天索引不越界
     if (selectedDayIndex.value >= days.value.length) {
       selectedDayIndex.value = days.value.length - 1;
     }
@@ -298,7 +291,7 @@ const goToAgreement = (type) => {
 };
 
 const navigateBack = () => {
-  uni.navigateBack();
+  uni.reLaunch({ url: '/pages/index/index' });
 };
 </script>
 
@@ -318,12 +311,14 @@ const navigateBack = () => {
   z-index: 0;
   pointer-events: none;
 }
+
 .bg-circle {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
   opacity: 0.4;
 }
+
 .bg-circle-1 {
   width: 400px;
   height: 400px;
@@ -331,6 +326,7 @@ const navigateBack = () => {
   top: -100px;
   right: -100px;
 }
+
 .bg-circle-2 {
   width: 300px;
   height: 300px;
@@ -352,37 +348,6 @@ const navigateBack = () => {
   width: 100%;
 }
 
-/* 顶部返回导航栏 */
-.nav-bar {
-  width: calc(100% - 40px);
-  max-width: 440px;
-  margin: 12px auto 0;
-  display: flex;
-  align-items: center;
-}
-.nav-back {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.nav-back:active {
-  opacity: 0.6;
-}
-.nav-back-icon {
-  font-size: 20px;
-  color: #6366f1;
-  font-weight: 700;
-  line-height: 1;
-}
-.nav-back-text {
-  font-size: 15px;
-  color: #6366f1;
-  font-weight: 500;
-}
-
 /* 卡片主体 */
 .letter-card {
   position: relative;
@@ -397,15 +362,31 @@ const navigateBack = () => {
 }
 
 .card-header {
-  text-align: center;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 24px;
-  .card-title {
-    display: block;
-    font-size: 24px;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 6px;
-  }
+}
+
+.back-text {
+  position: absolute;
+  left: 0;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.back-text:active {
+  opacity: 0.7;
+  color: #475569;
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .alert-tip {
@@ -416,6 +397,7 @@ const navigateBack = () => {
   gap: 8px;
   margin-bottom: 20px;
   border-radius: 12px;
+
   .tip-icon {
     width: 16px;
     height: 16px;
@@ -428,6 +410,7 @@ const navigateBack = () => {
     justify-content: center;
     flex-shrink: 0;
   }
+
   .tip-text {
     font-size: 12px;
     color: #10b981;
@@ -438,6 +421,7 @@ const navigateBack = () => {
 .form-area {
   width: 100%;
 }
+
 .form-group {
   margin-bottom: 16px;
 }
@@ -457,6 +441,7 @@ const navigateBack = () => {
     border-color: #6366f1;
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   }
+
   &.is-error {
     background: #fef2f2;
     border-color: #ef4444;
@@ -476,6 +461,7 @@ const navigateBack = () => {
   color: #1e293b;
   background: transparent;
 }
+
 .form-textarea {
   height: 100%;
   line-height: 1.5;
@@ -491,6 +477,7 @@ const navigateBack = () => {
   margin-top: 8px;
   min-height: 16px;
 }
+
 .info-stats-inline {
   display: flex;
   align-items: center;
@@ -502,6 +489,7 @@ const navigateBack = () => {
   margin-top: 4px;
   padding-left: 4px;
 }
+
 .error-text {
   font-size: 12px;
   color: #ef4444;
@@ -511,10 +499,12 @@ const navigateBack = () => {
   font-size: 12px;
   color: #94a3b8;
 }
+
 .calc-text {
   font-size: 12px;
   color: #94a3b8;
 }
+
 .price-value {
   color: #ef4444;
   font-weight: 700;
@@ -524,6 +514,7 @@ const navigateBack = () => {
 .time-wrapper {
   cursor: pointer;
   justify-content: space-between;
+
   .time-display {
     color: #0f172a;
     font-weight: 500;
@@ -533,10 +524,12 @@ const navigateBack = () => {
   .picker-trigger {
     flex-shrink: 0;
   }
+
   .time-btn-wrapper {
     display: flex;
     align-items: center;
   }
+
   .time-action {
     color: #6366f1;
     font-size: 13px;
@@ -551,10 +544,12 @@ const navigateBack = () => {
   margin: 18px 0 18px;
   gap: 8px;
   flex-wrap: nowrap;
+
   .agreement-text {
     font-size: 12px;
     color: #64748b;
     line-height: 1.5;
+
     .link {
       color: #6366f1;
       font-weight: 500;
@@ -584,6 +579,7 @@ const navigateBack = () => {
   justify-content: center;
   align-items: center;
   transition: all 0.3s ease;
+
   &::after {
     border: none;
   }
@@ -591,11 +587,13 @@ const navigateBack = () => {
   &.btn-active {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+
     &:active {
       transform: translateY(1px);
       box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
     }
   }
+
   .btn-text {
     color: inherit;
   }
@@ -625,7 +623,8 @@ const navigateBack = () => {
   height: 100%;
   scrollbar-width: none;
 }
-.tips-scroll ::-webkit-scrollbar {
+
+.tips-scroll::-webkit-scrollbar {
   display: none;
   width: 0 !important;
   height: 0 !important;
@@ -636,28 +635,41 @@ const navigateBack = () => {
   color: #94a3b8;
   line-height: 1.6;
   margin-bottom: 6px;
+
   &:last-child {
     margin-bottom: 0;
   }
 }
 </style>
 
-<!-- 全局样式：确保多列选择器各列宽度足够显示完整年份（如"2032年"） -->
+<!-- 新的全局样式：解决多列宽度不足问题 -->
 <style lang="scss">
-/* 全局样式覆盖：固定多列选择器的宽度 */
 .uni-picker-view-wrapper {
-  /* 强制设定总宽度为 360px */
+  /* 1. 移除固定宽度，允许宽度随内容撑开 */
   width: 360px !important;
 
+  /* 2. 设置足够大的最小宽度，确保 6 列内容不被挤压 */
+  min-width: 360px !important;
+
   .uni-picker-view {
-    min-width: 360px !important;
+    /* 启用 Flex 布局，让所有列横向排列 */
+    display: flex !important;
 
-    .uni-picker-item {
-      /* 关键属性：禁止文本自动换行，确保每列内容在一行显示 */
-      white-space: nowrap;
+    .uni-picker-view-col {
+      /* 3. 每列固定宽度 60px（360px ÷ 6列） */
+      width: 60px !important;
 
-      /* 可选：确保内部元素布局正常 */
-      box-sizing: border-box;
+      .uni-picker-item {
+        /* 4. 强制单行显示，禁止换行 */
+        white-space: nowrap !important;
+
+        /* 5. 居中对齐，稍微调小一点字体以适应更多列 */
+        text-align: center !important;
+        font-size: 12px !important;
+
+        /* 减少列间距，节省空间 */
+        padding: 0 2px !important;
+      }
     }
   }
 }

@@ -57,7 +57,7 @@ const goToAgreement = (type) => {
 };
 
 const goBack = () => {
-  uni.navigateBack();
+  uni.reLaunch({ url: '/pages/index/index' });
 };
 </script>
 
