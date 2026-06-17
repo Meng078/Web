@@ -20,13 +20,22 @@
   display: flex;
   flex-direction: column;
 
-  /* 关键修改：固定容器高度，防止页面被撑开 */
+  /*
+   * 关键修改 1：固定容器高度
+   * 这里的 calc 逻辑是：视口高度 (100vh) - 外层容器的上下 padding (20px * 2 = 40px)。
+   * 这样容器就不会被内部内容撑开，始终保持在这个高度。
+   */
   height: calc(100vh - 40px);
-  overflow: hidden; /* 确保超出部分在内部滚动 */
+  overflow: hidden; /* 确保超出部分在内部滚动，禁止容器本身出现滚动条 */
 }
 
 .page-header {
-  flex-shrink: 0; /* 头部固定不缩放 */
+  /*
+   * 关键修改 2：头部固定不缩放
+   * 在 Flex 布局中，flex-shrink: 0 保证头部不会被下方的内容挤压，始终保持其固有高度。
+   */
+  flex-shrink: 0;
+
   padding: 20px 40px;
   border-bottom: 1px solid #ebeef5;
   background-color: #fff;
@@ -35,40 +44,47 @@
 
   .header-content {
     display: flex;
-    /* 关键修改：左对齐 */
     justify-content: flex-start;
     align-items: center;
     width: 100%;
 
     .date-group {
       display: flex;
-      /* 关键修改：日期单行显示 */
       flex-direction: row;
       align-items: center;
-      gap: 16px; /* 两个日期之间的间距 */
+      gap: 16px;
 
       .agreement-date {
         color: #909399;
         font-size: 13px;
         line-height: 1.5;
-        white-space: nowrap; /* 防止日期本身换行 */
+        white-space: nowrap;
       }
     }
   }
 }
 
 .agreement-scroll {
-  flex: 1; /* 关键修改：填满剩余高度 */
-  min-height: 0; /* 关键修复：允许 flex 子项收缩，解决内容不显示/截断问题 */
+  /*
+   * 关键修改 3：填满剩余高度
+   * flex: 1 让该区域占据容器中除去头部之外的所有剩余空间。
+   */
+  flex: 1;
+
+  /*
+   * 关键修改 4：修复 Flex 子项溢出问题
+   * min-height: 0 是必须的，否则在某些浏览器/小程序中，flex 子项默认不能小于内容高度，导致无法滚动或撑破容器。
+   */
+  min-height: 0;
+
   box-sizing: border-box;
-  padding: 24px 32px; /* 优化内边距 */
+  padding: 24px 32px;
 }
 
 .agreement-body {
   font-size: 15px;
   line-height: 1.8;
   color: #303133;
-  /* 两端对齐，让文字填满区域 */
   text-align: justify;
   text-justify: inter-ideograph;
 
@@ -104,7 +120,6 @@
       display: block;
       margin-bottom: 12px;
       color: #555555;
-      /* 强制换行逻辑，确保长单词不溢出 */
       word-break: break-all;
       overflow-wrap: break-word;
     }
@@ -112,13 +127,18 @@
 }
 
 .scroll-bottom {
-  height: 40px; /* 底部留白 */
+  height: 40px;
 }
 
 /* 移动端适配 */
 @media screen and (max-width: 768px) {
   .agreement-page { padding: 0; align-items: flex-start; background-color: #fff; }
-  .agreement-container { height: 100vh; max-width: none; border-radius: 0; box-shadow: none; }
+  .agreement-container {
+    height: 100vh; /* 移动端通常铺满全屏 */
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
   .page-header { padding: 15px 20px; }
   .agreement-scroll { padding: 15px 20px; }
 }

@@ -44,6 +44,13 @@
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
+    },
+    {
+      "path": "pages/write-letter/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "写信"
+      }
     }
   ],
   "globalStyle": {

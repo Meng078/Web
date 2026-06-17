@@ -69,11 +69,6 @@ const goBack = () => {
       <view class="bg-circle bg-circle-2"></view>
     </view>
 
-    <!-- 关闭按钮 -->
-    <view class="page-close" @click="goBack">
-      <text class="close-icon">✕</text>
-    </view>
-
     <!-- 登录卡片 -->
     <view class="login-card">
       <!-- 头部 -->
@@ -115,19 +110,22 @@ const goBack = () => {
             </label>
           </checkbox-group>
           <view class="agreement-text">
-            <text>我已阅读并同意 </text>
+            <text>我已阅读并同意</text>
             <text class="link" @click="goToAgreement('user')">《用户协议》</text>
             <text>、</text>
             <text class="link" @click="goToAgreement('privacy')">《隐私保护协议》</text>
-            <text>和 </text>
+            <text>和</text>
             <text class="link" @click="goToAgreement('recharge')">《平台充值协议》</text>
           </view>
         </view>
 
-        <!-- 提交按钮 -->
-        <button class="submit-btn" :class="{ 'btn-active': isagree && !loading }" @click="submitForm" :loading="loading" :disabled="!isagree">
-          <text class="btn-text">立即登录</text>
-        </button>
+        <!-- 提交与返回区域 -->
+        <view class="submit-area">
+          <button class="submit-btn" :class="{ 'btn-active': isagree && !loading }" @click="submitForm" :loading="loading" :disabled="!isagree">
+            <text class="btn-text">立即登录</text>
+          </button>
+          <text class="back-link" @click="goBack">取消并返回</text>
+        </view>
       </view>
     </view>
   </view>
@@ -169,21 +167,6 @@ const goBack = () => {
   background: #10b981;
   bottom: -50px;
   left: -50px;
-}
-
-/* 关闭按钮 */
-.page-close {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 10;
-  cursor: pointer;
-  &:active { opacity: 0.7; }
-}
-.close-icon {
-  font-size: 20px;
-  color: #64748b;
-  font-weight: bold;
 }
 
 /* 登录卡片 */
@@ -305,7 +288,15 @@ const goBack = () => {
   &:active { opacity: 0.8; }
 }
 
-/* 提交按钮 */
+/* 提交与返回区域 */
+.submit-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
 .submit-btn {
   width: 100%;
   height: 52px;
@@ -332,6 +323,15 @@ const goBack = () => {
   .btn-text { color: inherit; }
 }
 
+/* 新增返回链接样式 */
+.back-link {
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  &:active { opacity: 0.7; color: #475569; }
+}
+
 /* PC端响应式微调 */
 @media (max-width: 768px) {
   .login-card {
@@ -340,6 +340,5 @@ const goBack = () => {
     box-shadow: none;
     padding: 40px 20px;
   }
-  .page-close { display: none; }
 }
 </style>
