@@ -1,7 +1,7 @@
 <script setup>
 import {ref} from "vue";
 
-const title = ref("Hello uni-app");
+const title = ref("Web应用平台");
 
 const goToLogin = () => {
   uni.navigateTo({ url: "/pages/mobile-login/index" });
@@ -15,6 +15,10 @@ const goToWriteLetter = () => {
   uni.navigateTo({ url: "/pages/write-letter/index" });
 };
 
+const goToMessageList = () => {
+  uni.navigateTo({ url: "/pages/message-list/index" });
+};
+
 const showComingSoon = () => {
   uni.showToast({ title: '功能开发中...', icon: 'none' });
 };
@@ -23,6 +27,7 @@ const navItems = ref([
   { text: "登录", desc: "手机号快捷登录", action: goToLogin, gradient: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
   { text: "我的", desc: "个人中心", action: goToMine, gradient: "linear-gradient(135deg, #06b6d4, #6366f1)" },
   { text: "写信", desc: "发送短信", action: goToWriteLetter, gradient: "linear-gradient(135deg, #10b981, #059669)" },
+  { text: "消息", desc: "消息记录", action: goToMessageList, gradient: "linear-gradient(135deg, #3b82f6, #6366f1)" },
   { text: "文档", desc: "开发指南与API", action: showComingSoon, gradient: "linear-gradient(135deg, #10b981, #059669)" },
   { text: "设置", desc: "偏好与系统配置", action: showComingSoon, gradient: "linear-gradient(135deg, #f59e0b, #d97706)" },
 ]);
@@ -30,6 +35,11 @@ const navItems = ref([
 
 <template>
   <view class="page-container">
+    <!-- 背景装饰 -->
+    <view class="bg-decoration">
+      <view class="bg-circle bg-circle-1"></view>
+      <view class="bg-circle bg-circle-2"></view>
+    </view>
     <view class="content-wrapper">
       <!-- 标题区域 -->
       <view class="hero-section">
@@ -65,13 +75,45 @@ const navItems = ref([
 <style scoped lang="scss">
 .page-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background-color: #eef2ff;
   padding: 48px 0 32px;
   display: flex;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景装饰 */
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+.bg-circle-1 {
+  width: 400px;
+  height: 400px;
+  background: #6366f1;
+  top: -100px;
+  right: -100px;
+}
+.bg-circle-2 {
+  width: 300px;
+  height: 300px;
+  background: #10b981;
+  bottom: -50px;
+  left: -50px;
 }
 
 .content-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 1200px;
   padding: 0 24px;

@@ -1,16 +1,10 @@
 {
-  "...": "...",
   "h5": {
     "router": {
       "mode": "history",
       "base": "./"
     },
-    "title": "Web应用平台",
-    "devServer": {
-      "port": 3000,
-      "disableHostCheck": true,
-      "https": false
-    }
+    "title": "Web应用平台"
   },
   "uniStatistics": {
     "enable": false

@@ -1,83 +1,15 @@
 /**
- * uni-app 全局样式变量 - 现代化主题
+ * uni-app 全局样式变量
+ *
+ * 本文件由框架自动注入到每个 SCSS 编译单元，无需手动 @import。
+ *
+ * 当前项目色彩体系（各页面统一使用硬编码色值）：
+ *   主色   #6366f1   辅色   #8b5cf6
+ *   成功   #10b981   警告   #f59e0b   错误   #ef4444
+ *   文字   #0f172a / #1e293b / #64748b / #94a3b8
+ *   背景   #f8fafc（页面） / #ffffff（卡片） / #f1f5f9（次级）
+ *   边框   #e2e8f0 / #f1f5f9
+ *
+ * 如需在此定义 SCSS 变量供页面引用，格式示例：
+ *   $color-primary: #6366f1;
  */
-
-/* 主题色彩体系 */
-$uni-color-primary: #6366f1;
-$uni-color-primary-light: #818cf8;
-$uni-color-primary-dark: #4f46e5;
-$uni-color-success: #10b981;
-$uni-color-success-light: #34d399;
-$uni-color-warning: #f59e0b;
-$uni-color-warning-light: #fbbf24;
-$uni-color-error: #ef4444;
-$uni-color-error-light: #f87171;
-
-/* 文字颜色 */
-$uni-text-color: #1e293b;
-$uni-text-color-secondary: #64748b;
-$uni-text-color-tertiary: #94a3b8;
-$uni-text-color-inverse: #ffffff;
-$uni-text-color-placeholder: #cbd5e1;
-$uni-text-color-disable: #e2e8f0;
-
-/* 背景颜色 */
-$uni-bg-color: #ffffff;
-$uni-bg-color-page: #f1f5f9;
-$uni-bg-color-grey: #f8fafc;
-$uni-bg-color-hover: #f1f5f9;
-$uni-bg-color-mask: rgba(0, 0, 0, 0.5);
-
-/* 边框颜色 */
-$uni-border-color: #e2e8f0;
-$uni-border-color-light: #f1f5f9;
-
-/* 渐变色 */
-$uni-gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-$uni-gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-$uni-gradient-cool: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
-$uni-gradient-soft: linear-gradient(135deg, #a78bfa 0%, #c084fc 100%);
-
-/* 尺寸变量 */
-$uni-font-size-xs: 20rpx;
-$uni-font-size-sm: 24rpx;
-$uni-font-size-base: 28rpx;
-$uni-font-size-md: 30rpx;
-$uni-font-size-lg: 34rpx;
-$uni-font-size-xl: 40rpx;
-$uni-font-size-xxl: 48rpx;
-
-/* 圆角 */
-$uni-border-radius-sm: 12rpx;
-$uni-border-radius-base: 16rpx;
-$uni-border-radius-lg: 24rpx;
-$uni-border-radius-xl: 32rpx;
-$uni-border-radius-circle: 50%;
-
-/* 间距 */
-$uni-spacing-xs: 8rpx;
-$uni-spacing-sm: 16rpx;
-$uni-spacing-base: 24rpx;
-$uni-spacing-md: 32rpx;
-$uni-spacing-lg: 48rpx;
-$uni-spacing-xl: 64rpx;
-
-/* 阴影 */
-$uni-shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-$uni-shadow-base: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
-$uni-shadow-lg: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
-$uni-shadow-xl: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
-$uni-shadow-primary: 0 4rpx 16rpx rgba(99, 102, 241, 0.3);
-
-/* 透明度 */
-$uni-opacity-disabled: 0.4;
-$uni-opacity-hover: 0.8;
-
-/* 过渡 */
-$uni-transition-fast: 0.15s ease;
-$uni-transition-base: 0.25s ease;
-$uni-transition-slow: 0.35s ease;
-
-/* 安全区域 */
-$uni-safe-area-inset-top: env(safe-area-inset-top);
-$uni-safe-area-inset-bottom: env(safe-area-inset-bottom);

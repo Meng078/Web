@@ -3,16 +3,25 @@ const goToLogin = () => {
   uni.navigateTo({ url: "/pages/mobile-login/index" });
 };
 
+const showComingSoon = () => {
+  uni.showToast({ title: '功能开发中...', icon: 'none' });
+};
+
 const menuItems = [
-  { text: "我的钱包", desc: "余额管理与交易流水", badge: "", action: () => {} },
-  { text: "优惠券", desc: "查看可用折扣券", badge: "3", action: () => {} },
-  { text: "联系客服", desc: "获取技术支持与咨询", badge: "", action: () => {} },
-  { text: "账号设置", desc: "隐私、安全与偏好配置", badge: "", action: () => {} },
+  { text: "我的钱包", desc: "余额管理与交易流水", badge: "", action: showComingSoon },
+  { text: "优惠券", desc: "查看可用折扣券", badge: "3", action: showComingSoon },
+  { text: "联系客服", desc: "获取技术支持与咨询", badge: "", action: showComingSoon },
+  { text: "账号设置", desc: "隐私、安全与偏好配置", badge: "", action: showComingSoon },
 ];
 </script>
 
 <template>
   <view class="mine-page">
+    <!-- 背景装饰 -->
+    <view class="bg-decoration">
+      <view class="bg-circle bg-circle-1"></view>
+      <view class="bg-circle bg-circle-2"></view>
+    </view>
     <view class="content-wrapper">
       <!-- 顶部用户信息区 -->
       <view class="user-header">
@@ -67,11 +76,42 @@ const menuItems = [
 <style scoped lang="scss">
 .mine-page {
   min-height: 100vh;
-  background: #f1f5f9;
+  background-color: #eef2ff;
   padding: 32px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景装饰 */
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+.bg-circle-1 {
+  width: 400px;
+  height: 400px;
+  background: #6366f1;
+  top: -100px;
+  right: -100px;
+}
+.bg-circle-2 {
+  width: 300px;
+  height: 300px;
+  background: #10b981;
+  bottom: -50px;
+  left: -50px;
 }
 
 .content-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;

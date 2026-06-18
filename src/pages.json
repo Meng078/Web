@@ -51,11 +51,19 @@
         "navigationStyle": "custom",
         "navigationBarTitleText": "写信"
       }
+    },
+    {
+      "path": "pages/message-list/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "消息记录",
+        "enablePullDownRefresh": true
+      }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "uni-app",
+    "navigationBarTitleText": "Web应用平台",
     "navigationBarBackgroundColor": "#6366f1",
     "backgroundColor": "#f8fafc",
     "backgroundTextStyle": "dark",

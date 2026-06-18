@@ -11,13 +11,6 @@ export default defineConfig({
     },
     extensions: ['.js', '.json', '.vue', '.scss', '.css']
   },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        // uni-app CLI 已自动注入 uni.scss，无需手动引入
-      }
-    }
-  },
   server: {
     port: 3000, // 推荐端口，避免与常见服务冲突
     open: true  // 启动时自动打开浏览器

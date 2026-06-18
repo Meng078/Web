@@ -27,10 +27,7 @@ page {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* 安全区域适配 */
-page {
+  /* 安全区域适配 */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
