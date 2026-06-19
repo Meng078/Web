@@ -82,6 +82,12 @@ uni-page-body {
   box-shadow: none !important;
 }
 
+/* uni.showModal 弹窗宽度覆盖 */
+.uni-modal {
+  width: 320px !important;
+  max-width: 320px !important;
+}
+
 /* 统一页面容器基础样式（供各页面 class="page-container" 继承） */
 .page-container, .agreement-page, .mine-page, .login-page {
   width: 100%;

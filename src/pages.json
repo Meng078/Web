@@ -53,6 +53,13 @@
       }
     },
     {
+      "path": "pages/paper-letter/config",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "纸质书信配置"
+      }
+    },
+    {
       "path": "pages/message-list/index",
       "style": {
         "navigationStyle": "custom",
