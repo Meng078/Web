@@ -81,8 +81,8 @@ const navItems = ref([
 .page-container {
   min-height: 100vh;
   background-color: #eef2ff;
-  padding: 48px 0 32px;
   display: flex;
+  align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;

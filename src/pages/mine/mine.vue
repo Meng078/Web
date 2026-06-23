@@ -1,4 +1,8 @@
 <script setup>
+const goBackHome = () => {
+  uni.reLaunch({ url: '/pages/index/index' });
+};
+
 const goToLogin = () => {
   uni.navigateTo({ url: "/pages/mobile-login/index" });
 };
@@ -23,6 +27,10 @@ const menuItems = [
       <view class="bg-circle bg-circle-2"></view>
     </view>
     <view class="content-wrapper">
+      <!-- 返回主页 -->
+      <view class="back-row">
+        <text class="back-link" @click="goBackHome">返回主页</text>
+      </view>
       <!-- 顶部用户信息区 -->
       <view class="user-header">
         <view class="user-card" @click="goToLogin">
@@ -77,7 +85,9 @@ const menuItems = [
 .mine-page {
   min-height: 100vh;
   background-color: #eef2ff;
-  padding: 32px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   overflow: hidden;
 }
@@ -275,6 +285,30 @@ const menuItems = [
   .menu-item:hover & {
     transform: translateX(4px);
     color: #94a3b8;
+  }
+}
+
+.back-row {
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.back-link {
+  font-size: 14px;
+  color: #6366f1;
+  cursor: pointer;
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.08);
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.15);
+  }
+
+  &:active {
+    opacity: 0.7;
   }
 }
 
