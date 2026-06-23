@@ -66,6 +66,13 @@
         "navigationBarTitleText": "消息记录",
         "enablePullDownRefresh": true
       }
+    },
+    {
+      "path": "pages/message-list/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "列表管理"
+      }
     }
   ],
   "globalStyle": {

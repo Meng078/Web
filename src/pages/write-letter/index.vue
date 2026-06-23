@@ -53,11 +53,27 @@
 
 <script setup>
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 
-// 只有从配置页返回时才恢复内容（标记为草稿），从主页进入时清空
-const isDraft = uni.getStorageSync('letterDraft');
-const content = ref(isDraft ? (uni.getStorageSync('currentLetterContent') || '') : '');
-const isFocused = ref(content.value.length > 0);
+const content = ref('');
+const isFocused = ref(false);
+
+onShow(() => {
+  // 判断来源：只有从配置页返回时才恢复草稿
+  const pages = getCurrentPages();
+  const prevRoute = pages.length > 1 ? pages[pages.length - 2].route : '';
+
+  if (prevRoute === 'pages/paper-letter/config' && uni.getStorageSync('letterDraft')) {
+    // 从配置页返回 → 恢复草稿内容
+    content.value = uni.getStorageSync('currentLetterContent') || '';
+  } else {
+    // 从其他页面进来（主页等）→ 清空内容和存储
+    content.value = '';
+    uni.removeStorageSync('letterDraft');
+    uni.removeStorageSync('currentLetterContent');
+  }
+  isFocused.value = content.value.length > 0;
+});
 
 /**
  * 核心联动逻辑：保存内容并跳转至配置页

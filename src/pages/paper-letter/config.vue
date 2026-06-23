@@ -297,8 +297,8 @@ const handleSubmit = () => {
 };
 
 const goBack = () => {
-  // 强制返回写信页，清除当前配置页栈帧，避免重复压栈
-  uni.reLaunch({ url: '/pages/write-letter/index' });
+  // 返回写信页，保留写信页页面栈状态
+  uni.navigateBack();
 };
 </script>
 

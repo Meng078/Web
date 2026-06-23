@@ -19,6 +19,10 @@ const goToMessageList = () => {
   uni.navigateTo({ url: "/pages/message-list/index" });
 };
 
+const goToList = () => {
+  uni.navigateTo({ url: "/pages/message-list/list" });
+};
+
 const showComingSoon = () => {
   uni.showToast({ title: '功能开发中...', icon: 'none' });
 };
@@ -28,6 +32,7 @@ const navItems = ref([
   { text: "我的", desc: "个人中心", action: goToMine, gradient: "linear-gradient(135deg, #06b6d4, #6366f1)" },
   { text: "写信", desc: "发送短信", action: goToWriteLetter, gradient: "linear-gradient(135deg, #10b981, #059669)" },
   { text: "消息", desc: "消息记录", action: goToMessageList, gradient: "linear-gradient(135deg, #3b82f6, #6366f1)" },
+  { text: "列表", desc: "数据管理", action: goToList, gradient: "linear-gradient(135deg, #a855f7, #d946ef)" },
   { text: "文档", desc: "开发指南与API", action: showComingSoon, gradient: "linear-gradient(135deg, #10b981, #059669)" },
   { text: "设置", desc: "偏好与系统配置", action: showComingSoon, gradient: "linear-gradient(135deg, #f59e0b, #d97706)" },
 ]);
