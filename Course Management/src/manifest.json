@@ -1,0 +1,13 @@
+{
+  "h5": {
+    "router": {
+      "mode": "history",
+      "base": "./"
+    },
+    "title": "Web应用平台"
+  },
+  "uniStatistics": {
+    "enable": false
+  },
+  "vueVersion": "3"
+}
