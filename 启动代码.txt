@@ -1,2 +1,3 @@
+npm run server
 npm run dev:h5
 git仓库：https://github.com/Meng078/Web.git
