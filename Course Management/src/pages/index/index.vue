@@ -1,54 +1,95 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
+import { getCoursesAPI } from '@/api/index.js';
+import { getCurrentUser } from '@/utils/session.js';
 
 const title = ref('智慧课表');
 const goToMine = () => { uni.navigateTo({ url: '/pages/mine/mine' }); };
 const goToCourseList = () => { uni.navigateTo({ url: '/pages/list/listCourse' }); };
-const goToSettings = () => { uni.navigateTo({ url: '/pages/stting/index' }); }; // 注意：原路径拼写为 stting，这里保留以便兼容
+const goToSettings = () => { uni.navigateTo({ url: '/pages/stting/index' }); };
 
 const navItems = ref([
-  { text: '课程列表', desc: '浏览所有学期课程', action: goToCourseList, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+  { text: '课程列表', desc: '浏览所有课程', action: goToCourseList, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
   { text: '课表设置', desc: '时间轴与显示偏好', action: goToSettings, gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)' },
   { text: '我的', desc: '个人中心', action: goToMine, gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' },
 ]);
 
-// 【修复】：去除了 getIco nByIndex 中的空格
-const getIconByIndex = (index) => {
-  const icons = ['📝', '📋', '⚙️', '👤'];
-  return icons[index] || '📌';
-};
-
-// ==========================================
-// 核心逻辑：周视图与日历计算
-// ==========================================
 const weekDays = ref([]);
 const weekOffset = ref(0);
 const currentWeekStart = ref(null);
-const selectedDayIndex = ref(0); // 默认选中周一
+const selectedDayIndex = ref(0);
+const loading = ref(false);
+
+const weekStartDay = ref('周一');
+
+const CHINESE_WEEKDAYS_MONDAY = ['一', '二', '三', '四', '五', '六', '日'];
+const CHINESE_WEEKDAYS_SUNDAY = ['日', '一', '二', '三', '四', '五', '六'];
+
+const courseColors = [
+  { bg: '#e0e7ff', text: '#3730a3', border: '#a5b4fc' },
+  { bg: '#fce7f3', text: '#9d174d', border: '#f9a8d4' },
+  { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7' },
+  { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
+  { bg: '#e0f2fe', text: '#075985', border: '#7dd3fc' },
+  { bg: '#ede9fe', text: '#5b21b6', border: '#c4b5fd' },
+  { bg: '#ffedd5', text: '#9a3412', border: '#fdba74' },
+  { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
+];
+
+const loadWeekStartSetting = () => {
+  try {
+    const saved = uni.getStorageSync('weekStartDay');
+    if (saved) weekStartDay.value = saved;
+  } catch (e) {}
+};
+
+const chineseWeekdays = computed(() => {
+  return weekStartDay.value === '周日' ? CHINESE_WEEKDAYS_SUNDAY : CHINESE_WEEKDAYS_MONDAY;
+});
+
+const getWeekdayIndex = (courseTime) => {
+  if (!courseTime) return -1;
+  const days = chineseWeekdays.value;
+  for (let i = 0; i < days.length; i++) {
+    if (courseTime.includes(days[i])) return i;
+  }
+  return -1;
+};
 
 const initWeekDays = (offset = 0) => {
   const now = new Date();
-  const currentDay = now.getDay() || 7;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - currentDay + 1 + offset * 7);
-  currentWeekStart.value = monday;
+  const weekStart = weekStartDay.value === '周日' ? 0 : 1;
+  const currentDay = now.getDay();
+  let firstDay = new Date(now);
+  if (weekStart === 0) {
+    firstDay.setDate(now.getDate() - currentDay + offset * 7);
+  } else {
+    firstDay.setDate(now.getDate() - (currentDay || 7) + 1 + offset * 7);
+  }
+  currentWeekStart.value = firstDay;
 
+  const days = chineseWeekdays.value;
   weekDays.value = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+    const d = new Date(firstDay);
+    d.setDate(firstDay.getDate() + i);
+    const isToday = (() => {
+      const today = new Date();
+      return d.getFullYear() === today.getFullYear() &&
+             d.getMonth() === today.getMonth() &&
+             d.getDate() === today.getDate();
+    })();
     weekDays.value.push({
       date: d,
-      weekday: ['一', '二', '三', '四', '五', '六', '日'][i],
+      weekday: days[i],
       day: d.getDate(),
       month: d.getMonth() + 1,
-      isToday: offset === 0 && i === currentDay - 1,
+      isToday,
       isSelected: false,
     });
   }
 
-  // 默认选中逻辑
   if (offset === 0) {
     const todayIdx = weekDays.value.findIndex(d => d.isToday);
     selectedDayIndex.value = todayIdx >= 0 ? todayIdx : 0;
@@ -58,8 +99,6 @@ const initWeekDays = (offset = 0) => {
     weekDays.value[0].isSelected = true;
   }
 };
-
-initWeekDays();
 
 const prevWeek = () => {
   weekOffset.value--;
@@ -81,10 +120,6 @@ const weekRangeLabel = computed(() => {
   return `${start.getMonth() + 1}月${start.getDate()}日 - ${end.getMonth() + 1}月${end.getDate()}日`;
 });
 
-// ==========================================
-// 课程数据逻辑
-// ==========================================
-// 【修复】：去除 timeSl ots 中的空格，改为 timeSlots
 const timeSlots = [
   { id: 1, label: '第一单元', start: '08:00', end: '09:40' },
   { id: 2, label: '第二单元', start: '10:10', end: '11:50' },
@@ -93,7 +128,7 @@ const timeSlots = [
   { id: 5, label: '第五单元', start: '18:30', end: '20:10' },
 ];
 
-const weeklyGridData = ref(Array(5).fill().map(() => Array(7).fill([])));
+const weeklyGridData = ref(Array.from({ length: 5 }, () => Array.from({ length: 7 }, () => [])));
 
 const formatDate = (date) => {
   const y = date.getFullYear();
@@ -102,39 +137,103 @@ const formatDate = (date) => {
   return `${y}-${m}-${d}`;
 };
 
-// 【修复】：去除 load WeeklyCourses 中的空格，改为 loadWeeklyCourses
-const loadWeeklyCourses = () => {
-  const allCourses = uni.getStorageSync('courses') || [];
-  const currentGrid = Array(5).fill().map(() => Array(7).fill([]));
+const getSlotIndex = (startTime) => {
+  if (!startTime) return -1;
+  const startMin = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+  if (startMin <= 580) return 0;
+  if (startMin <= 650) return 1;
+  if (startMin <= 810) return 2;
+  if (startMin <= 940) return 3;
+  return 4;
+};
+
+let courseColorIndex = 0;
+const getNextColor = () => {
+  const color = courseColors[courseColorIndex % courseColors.length];
+  courseColorIndex++;
+  return color;
+};
+
+/**
+ * 将课程数据映射到课表网格
+ * @param {Array} rawCourses - 原始课程数据
+ */
+const renderCoursesToGrid = (rawCourses) => {
+  const allCourses = rawCourses.map(c => ({
+    id: c.id,
+    subject: c.course_name,
+    teacher: c.teacher_name,
+    location: c.course_location,
+    startDay: c.start_date,
+    endDay: c.end_date,
+    startTime: c.start_time,
+    endTime: c.end_time,
+    courseTime: c.course_time,
+  }));
+
+  courseColorIndex = 0;
+  const currentGrid = Array.from({ length: 5 }, () => Array.from({ length: 7 }, () => []));
+  const usedColors = {};
 
   weekDays.value.forEach((day, dayIdx) => {
-    const dateStr = formatDate(day.date);
-    const daysCourses = allCourses.filter(c => c.startDay === dateStr);
+    const currentDate = day.date;
 
-    daysCourses.forEach(course => {
-      let matchedSlot = -1;
-      const slotId = course.slotId ? parseInt(course.slotId) : null;
+    allCourses.forEach(course => {
+      let matched = false;
+      let targetWeekday = -1;
 
-      if (slotId >= 1 && slotId <= 5) {
-        matchedSlot = slotId - 1;
-      } else {
-        if (course.startTime) {
-          const startMin = parseInt(course.startTime.split(':')[0]) * 60 + parseInt(course.startTime.split(':')[1]);
-          if (startMin <= 580) matchedSlot = 0;
-          else if (startMin <= 650) matchedSlot = 1;
-          else if (startMin <= 810) matchedSlot = 2;
-          else if (startMin <= 940) matchedSlot = 3;
-          else matchedSlot = 4;
-        }
+      if (course.courseTime) {
+        targetWeekday = getWeekdayIndex(course.courseTime);
       }
-
-      if (matchedSlot >= 0 && matchedSlot < 5) {
-        currentGrid[matchedSlot][dayIdx].push(course);
+      if (targetWeekday === -1 && course.startDay) {
+        targetWeekday = new Date(course.startDay).getDay();
       }
+      if (targetWeekday !== dayIdx) return;
+
+      if (course.startDay && course.endDay) {
+        const currentDateStr = formatDate(currentDate);
+        if (currentDateStr >= course.startDay && currentDateStr <= course.endDay) matched = true;
+      } else if (course.startDay) {
+        if (formatDate(currentDate) >= course.startDay) matched = true;
+      } else if (course.courseTime) {
+        matched = true;
+      }
+      if (!matched) return;
+
+      let slotIdx = -1;
+      if (course.startTime) slotIdx = getSlotIndex(course.startTime);
+      if (slotIdx < 0 || slotIdx >= 5) return;
+
+      const courseKey = `${course.id || course.subject}`;
+      if (!usedColors[courseKey]) usedColors[courseKey] = getNextColor();
+
+      currentGrid[slotIdx][dayIdx].push({ ...course, color: usedColors[courseKey] });
     });
   });
 
   weeklyGridData.value = currentGrid;
+};
+
+/**
+ * 清除课程数据缓存（添加/编辑/删除课程后调用）
+ */
+const clearCourseCache = () => {
+  try {
+    uni.removeStorageSync(CACHE_KEY);
+  } catch (e) { /* 忽略 */ }
+};
+
+const loadWeeklyCourses = async () => {
+  loading.value = true;
+  let rawCourses = [];
+  try {
+    rawCourses = await getCoursesWithCache();
+  } catch (e) {
+    rawCourses = [];
+  }
+
+  renderCoursesToGrid(rawCourses);
+  loading.value = false;
 };
 
 const selectDay = (index) => {
@@ -142,96 +241,149 @@ const selectDay = (index) => {
   selectedDayIndex.value = index;
 };
 
+let touchStartX = 0;
+const onTouchStart = (e) => { touchStartX = e.touches[0].clientX; };
+const onTouchEnd = (e) => {
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) diff > 0 ? nextWeek() : prevWeek();
+};
+
+const checkAuth = () => {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    uni.reLaunch({ url: '/pages/login/index' });
+    return false;
+  }
+  return true;
+};
+
+// ★ 缓存配置：课程数据缓存 5 分钟，减少重复请求 ★
+const CACHE_KEY = 'cachedCourses';
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 分钟
+
+/**
+ * 获取课程数据（带缓存）
+ * 优先读取缓存，缓存过期或没有缓存时才发起网络请求
+ */
+const getCoursesWithCache = async () => {
+  try {
+    const cached = uni.getStorageSync(CACHE_KEY);
+    if (cached && cached.data && Date.now() - cached.timestamp < CACHE_EXPIRY) {
+      return cached.data; // 缓存有效，直接返回
+    }
+  } catch (e) { /* 忽略读取错误 */ }
+
+  // 缓存无效或过期，发起网络请求
+  const res = await getCoursesAPI();
+  const courses = (res.data || res || []);
+
+  try {
+    uni.setStorageSync(CACHE_KEY, {
+      data: courses,
+      timestamp: Date.now()
+    });
+  } catch (e) { /* 忽略写入错误 */ }
+
+  return courses;
+};
+
+const refreshWeekView = () => {
+  if (!checkAuth()) return;
+  loadWeekStartSetting();
+  initWeekDays(weekOffset.value);
+  loadWeeklyCourses();
+};
+
+// ★ 首次加载标记，防止 onMounted + onShow 重复执行 ★
+let _hasMounted = false;
+
 onMounted(() => {
-  loadWeeklyCourses();
+  refreshWeekView();
+  _hasMounted = true;
 });
 
+// ★ onShow 时跳过首次（onMounted 已执行），仅从缓存渲染
+//   切换 Tab 回来时直接读缓存，无需网络请求，实现秒级显示
 onShow(() => {
+  if (!checkAuth()) return;
+
+  // 首次显示由 onMounted 处理，跳过
+  if (!_hasMounted) return;
+
+  loadWeekStartSetting();
+  initWeekDays(weekOffset.value);
+
+  // 直接读取缓存渲染，0 网络等待
+  try {
+    const cached = uni.getStorageSync(CACHE_KEY);
+    if (cached && cached.data && Date.now() - cached.timestamp < CACHE_EXPIRY) {
+      renderCoursesToGrid(cached.data);
+      return;
+    }
+  } catch (e) { /* 忽略 */ }
+
+  // 缓存不存在（极少情况），后台静默刷新
   loadWeeklyCourses();
 });
 
-const hasAnyCourse = computed(() => {
-  return weeklyGridData.value.some(slot => slot.some(day => day.length > 0));
-});
+const hasAnyCourse = computed(() => weeklyGridData.value.some(slot => slot.some(day => day.length > 0)));
 
 const semesterInfo = computed(() => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
-  const day = now.getDate();
-  if ((m >= 3 && m < 7) || (m === 7 && day <= 15)) {
-    return { name: `${y}年春季学期`, inSemester: true };
-  }
-  if ((m >= 9 && m <= 12) || (m === 1 && day <= 15)) {
-    const semesterYear = m <= 2 ? y - 1 : y;
-    return { name: `${semesterYear}年秋季学期`, inSemester: true };
-  }
+  const refDate = currentWeekStart.value || new Date();
+  const y = refDate.getFullYear();
+  const m = refDate.getMonth() + 1;
+  const d = refDate.getDate();
+  if ((m >= 3 && m < 7) || (m === 7 && d <= 15)) return { name: `${y}年春季学期`, inSemester: true };
+  if ((m >= 9 && m <= 12) || (m === 1 && d <= 15)) return { name: `${(m <= 2 ? y - 1 : y)}年秋季学期`, inSemester: true };
   return { name: '', inSemester: false };
 });
 
 const currentWeekNum = computed(() => {
   if (!semesterInfo.value.inSemester) return null;
-  const yearMatch = semesterInfo.value.name.match(/(\d+)年/);
-  const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-  const isSpring = semesterInfo.value.name.includes('春');
-  const start = isSpring ? new Date(year, 2, 1) : new Date(year, 8, 1);
-  const diff = new Date() - start;
-  // 【修复】：去除 Math.f loor 中的空格
-  return Math.floor(diff / (7 * 86400000)) + 1;
+  const refDate = currentWeekStart.value || new Date();
+  const y = parseInt(semesterInfo.value.name.match(/(\d+)年/)?.[1] || refDate.getFullYear());
+  const start = semesterInfo.value.name.includes('春') ? new Date(y, 2, 1) : new Date(y, 8, 1);
+  return Math.floor((refDate - start) / (7 * 86400000)) + 1;
 });
 </script>
 
 <template>
   <view class="page-container">
-    <!-- 背景装饰 -->
     <view class="bg-decoration">
       <view class="bg-circle bg-circle-1"></view>
       <view class="bg-circle bg-circle-2"></view>
     </view>
 
     <view class="content-wrapper">
-      <!-- 头部标题 -->
       <view class="hero-section">
         <text class="app-title">{{ title }}</text>
         <text class="app-subtitle" v-if="semesterInfo.inSemester">
           {{ semesterInfo.name }} · 第{{ currentWeekNum }}周
         </text>
-        <text class="app-subtitle" v-else>
-          {{ weekRangeLabel }}
-        </text>
+        <text class="app-subtitle" v-else>{{ weekRangeLabel }}</text>
       </view>
 
-      <!-- 合并后的主容器 -->
       <view class="unified-card">
-        <!-- 模块 2: 课表网格 -->
         <view class="schedule-table">
-
-          <!-- 顶部导航栏 -->
           <view class="top-nav-bar">
-            <view class="nav-btn prev-btn" @click="prevWeek">
+            <view class="nav-btn prev-btn" @click="prevWeek()">
               <text class="arrow-icon">‹</text>
               <text class="btn-text">上周</text>
             </view>
-
             <view class="range-label-container">
               <text class="label-text">{{ weekRangeLabel }}</text>
             </view>
-
-            <view class="nav-btn next-btn" @click="nextWeek">
+            <view class="nav-btn next-btn" @click="nextWeek()">
               <text class="btn-text">下周</text>
               <text class="arrow-icon">›</text>
             </view>
           </view>
 
-          <!-- 原有课表头 -->
           <view class="table-header">
             <view class="col-time"></view>
-            <view class="col-days">
-              <view
-                  class="col-day"
-                  v-for="(day, i) in weekDays"
-                  :key="'h'+i"
-              >
+            <view class="col-days" @touchstart="onTouchStart" @touchend="onTouchEnd">
+              <view class="col-day" v-for="(day, i) in weekDays" :key="'h'+i"
+                :class="{ 'today-header': day.isToday && weekOffset === 0 }" @click="selectDay(i)">
                 <text class="cell-day">周{{ day.weekday }}</text>
                 <text class="cell-date">{{ day.month }}/{{ day.day }}</text>
               </view>
@@ -239,27 +391,24 @@ const currentWeekNum = computed(() => {
           </view>
 
           <scroll-view scroll-y class="table-body">
+            <view v-if="loading" class="loading-mask">
+              <view class="loading-spinner"></view>
+            </view>
+
             <view v-for="(slot, slotIdx) in timeSlots" :key="slot.id" class="row-slot">
               <view class="col-time cell">
                 <text class="time-label">{{ slot.label }}</text>
                 <text class="time-info">{{ slot.start }}-{{ slot.end }}</text>
               </view>
               <view class="col-days">
-                <view
-                    class="col-day cell"
-                    v-for="(day, dayIdx) in weekDays"
-                    :key="dayIdx"
-                    :class="{ 'highlight-today': day.isToday && weekOffset === 0 }"
-                >
-                  <!-- 渲染该格子的课程 -->
-                  <view v-if="weeklyGridData[slotIdx][dayIdx].length > 0">
-                    <view
-                        class="course-block"
-                    >
-                      <text class="course-name">{{ weeklyGridData[slotIdx][dayIdx][0].subject || '课程' }}</text>
-                      <text class="course-teacher">{{ weeklyGridData[slotIdx][dayIdx][0].teacher || '' }}</text>
-                      <text class="course-time">{{ weeklyGridData[slotIdx][dayIdx][0].startTime || '' }}{{ weeklyGridData[slotIdx][dayIdx][0].startTime ? '-' : '' }}{{ weeklyGridData[slotIdx][dayIdx][0].endTime || '' }}</text>
-                      <text class="course-loc">{{ weeklyGridData[slotIdx][dayIdx][0].location || '' }}</text>
+                <view class="col-day cell" v-for="(day, dayIdx) in weekDays" :key="dayIdx"
+                  :class="{ 'highlight-today': day.isToday && weekOffset === 0, 'selected-day': day.isSelected }">
+                  <view v-if="weeklyGridData[slotIdx][dayIdx].length > 0" class="course-list">
+                    <view v-for="(course, cIdx) in weeklyGridData[slotIdx][dayIdx]" :key="cIdx" class="course-block"
+                      :style="{ background: course.color.bg, borderLeftColor: course.color.border }">
+                      <text class="course-name" :style="{ color: course.color.text }">{{ course.subject }}</text>
+                      <text class="course-teacher">{{ course.teacher }}</text>
+                      <text class="course-location">{{ course.location }}</text>
                     </view>
                   </view>
                 </view>
@@ -267,30 +416,18 @@ const currentWeekNum = computed(() => {
             </view>
           </scroll-view>
 
-          <!-- 空状态提示 -->
-          <view class="empty-hint" v-if="!hasAnyCourse">
-            <text class="empty-text">📭 本周暂无课程安排</text>
-          </view>
         </view>
       </view>
 
-      <!-- 底部核心按钮 -->
       <view class="action-grid">
-        <view
-            class="nav-card"
-            v-for="(item, index) in navItems"
-            :key="index"
-            @click="item.action"
-        >
+        <button class="nav-card" v-for="(item, index) in navItems" :key="index" @click="item.action()">
           <view class="card-bg" :style="{ background: item.gradient }"></view>
           <view class="card-content">
             <text class="nav-text">{{ item.text }}</text>
             <text class="nav-desc">{{ item.desc }}</text>
           </view>
-        </view>
+        </button>
       </view>
-
-      <view class="footer-tip">© 智慧教务云 · 高效排课</view>
     </view>
   </view>
 </template>
@@ -298,179 +435,249 @@ const currentWeekNum = computed(() => {
 <style scoped lang="scss">
 .page-container {
   min-height: 100vh;
-  background-color: #f0f4f8;
+  background: linear-gradient(180deg, #f0f4ff 0%, #f8fafc 100%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  padding-top: var(--status-bar-height);
 
   .bg-decoration {
-    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; pointer-events: none;
     .bg-circle {
-      position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
-      &.bg-circle-1 { width: 400px; height: 400px; background: #6366f1; top: -100px; right: -100px; }
-      &.bg-circle-2 { width: 300px; height: 300px; background: #10b981; bottom: -50px; left: -50px; }
+      position: absolute; border-radius: 50%; /* #ifdef H5 */ filter: blur(100px); /* #endif */ opacity: 0.3;
+      &.bg-circle-1 { width: 400px; height: 400px; background: #6366f1; top: -120px; right: -80px; }
+      &.bg-circle-2 { width: 300px; height: 300px; background: #10b981; bottom: -80px; left: -60px; }
     }
   }
 
   .content-wrapper {
-    position: relative; z-index: 1; max-width: 1000px; padding: 18px; box-sizing: border-box; margin: 0 auto;
-    .hero-section { text-align: center; margin-bottom: 20px; }
-    .app-title { display: block; font-size: 30px; font-weight: 800; color: #1e293b; }
-    .app-subtitle { display: block; font-size: 14px; color: #64748b}
+    position: relative; z-index: 1; max-width: 100%; padding: 16px 12px 32px; box-sizing: border-box; margin: 0 auto;
   }
 }
 
+/* ===== 英雄区头部 ===== */
+.hero-section {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 16px;
+  padding: 24px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.25);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -40%;
+    left: -20%;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .app-title {
+    display: block;
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 1;
+  }
+  .app-subtitle {
+    display: block;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 6px;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* ===== 课表卡片 ===== */
 .unified-card {
-  background: #fff; border-radius: 16px; margin-bottom: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0; overflow: hidden;
+  background: #fff;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  overflow: hidden;
 }
 
 .top-nav-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; background-color: #f8fafc; border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background-color: #f8faff;
+  border-bottom: 1px solid #eef2f6;
 
   .nav-btn {
-    display: flex; align-items: center; gap: 4px; cursor: pointer; color: #6366f1; padding: 8px; transition: opacity 0.2s;
-    .btn-text { font-size: 13px; font-weight: 500; }
-    .arrow-icon { font-size: 20px; line-height: 1; }
-    &:active { opacity: 0.6; }
+    display: flex; align-items: center; gap: 4px; cursor: pointer;
+    padding: 6px 12px; border-radius: 8px;
+    background: rgba(99, 102, 241, 0.06);
+    color: #6366f1; transition: all 0.2s; user-select: none;
+    .btn-text { font-size: 13px; font-weight: 600; }
+    .arrow-icon { font-size: 18px; line-height: 1; }
+    &:active { background: rgba(99, 102, 241, 0.15); transform: scale(0.95); }
   }
   .range-label-container { flex: 1; text-align: center; }
-  .label-text { font-size: 15px; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; }
+  .label-text { font-size: 14px; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; }
 }
 
-/* ==========================================
-   【新增修改】使用 Flex 进行均匀分布
-   ========================================== */
 .schedule-table {
   width: 100%;
   display: flex;
   flex-direction: column;
 
-  /* 顶部表头 (星期列) */
   .table-header {
     display: flex;
-    background: #fcfcfd;
-    border-bottom: 1px solid #f1f5f9;
+    background: #fafbfd;
+    border-bottom: 1px solid #eef2f6;
     flex-shrink: 0;
 
     .col-time {
-      flex: 0 0 12%; /* 左侧占据约 12% */
+      flex: 0 0 80px;
       text-align: center;
-      padding: 10px 0;
+      padding: 8px 0;
       color: #94a3b8;
-      font-size: 12px;
-      font-weight: bold;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
-
     .col-days {
-      flex: 1;
-      display: flex;
+      flex: 1; display: flex;
+      .col-day {
+        flex: 1; text-align: center; padding: 8px 2px;
+        border-left: 1px solid #eef2f6;
+        cursor: pointer; transition: all 0.2s; user-select: none;
+        &:active { background: #f1f5f9; }
+        &.today-header {
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.04));
+          .cell-day { color: #6366f1; }
+          .cell-date { color: #6366f1; font-weight: 600; }
+        }
+        .cell-day { display: block; font-size: 12px; color: #64748b; font-weight: 600; }
+        .cell-date { display: block; font-size: 10px; color: #94a3b8; margin-top: 1px; }
+      }
+    }
+  }
+}
 
+.table-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  max-height: 440px;
+
+  .loading-mask {
+    position: absolute; inset: 0;
+    background: rgba(255, 255, 255, 0.85);
+    display: flex; align-items: center; justify-content: center; z-index: 10;
+    .loading-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-slot {
+    display: flex;
+    min-height: 68px;
+    border-bottom: 1px solid #f1f4f9;
+    transition: background 0.15s;
+    &:last-child { border-bottom: none; }
+
+    .col-time {
+      flex: 0 0 80px;
+      padding: 6px 4px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background-color: #fafbfd;
+      border-right: 1px solid #eef2f6;
+      .time-label { font-size: 11px; color: #6366f1; font-weight: 700; }
+      .time-info { font-size: 9px; color: #94a3b8; white-space: nowrap; font-weight: 500; margin-top: 2px; }
+    }
+    .col-days {
+      flex: 1; display: flex;
       .col-day {
         flex: 1;
-        text-align: center;
-        padding: 10px 0;
-        border-left: 1px dashed #eee;
+        border-left: 1px solid #f1f4f9;
+        position: relative;
+        padding: 4px;
+        min-height: 68px;
 
-        .cell-day {
-          display: block; font-size: 13px; color: #6366f1; font-weight: 600;
-        }
-        .cell-date {
-          display: block; font-size: 10px; color: #94a3b8;
-        }
-      }
-    }
-  }
+        &.highlight-today { background: rgba(99, 102, 241, 0.03); }
+        &.selected-day { background: rgba(99, 102, 241, 0.05); box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12); }
 
-  /* 中部内容 (单元列 + 课程网格) */
-  .table-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-
-    .row-slot {
-      display: flex;
-      min-height: 80px;
-      border-bottom: 1px dashed #f1f5f9;
-
-      .col-time {
-        flex: 0 0 12%; /* 保持与表头一致的比例 */
-        padding: 10px 5px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: #fbfbfc;
-
-        .time-label { font-size: 12px; color: #6366f1; margin-bottom: 2px; font-weight: 700; }
-        .time-info { font-size: 10px; color: #64748b; white-space: nowrap; font-weight: 500; }
-      }
-
-      .col-days {
-        flex: 1;
-        display: flex;
-
-        .col-day {
-          flex: 1;
-          border-left: 1px solid #f1f5f9;
-          position: relative;
-          padding: 2px;
-
-          &.highlight-today { background: rgba(99, 102, 241, 0.05); }
-
-          .course-block {
-            width: 100%;
-            height: 82px;
-            box-sizing: border-box;
-            padding: 6px 4px;
-            background: #eff6ff;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-
-            .course-name {
-              display: block; font-size: 11px; font-weight: 700; color: #1e3a8a; text-align: center; line-height: 1.3; word-break: break-all;
-            }
-            .course-teacher {
-              display: block; font-size: 9px; color: #6366f1; text-align: center; line-height: 1.4; margin-top: 1px;
-            }
-            .course-time {
-              display: block; font-size: 9px; color: #334155; text-align: center; line-height: 1.4;
-            }
-            .course-loc {
-              display: block; font-size: 9px; color: #64748b; text-align: center; line-height: 1.4;
-            }
-          }
+        .course-list { display: flex; flex-direction: column; gap: 2px; }
+        .course-block {
+          width: 100%; box-sizing: border-box;
+          padding: 4px 5px; border-radius: 6px;
+          border-left: 3px solid;
+          display: flex; flex-direction: column;
+          overflow: hidden;
+          transition: transform 0.15s, box-shadow 0.15s;
+          &:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+          .course-name { display: block; font-size: 11px; font-weight: 700; text-align: left; line-height: 1.3; word-break: break-all; }
+          .course-teacher { display: block; font-size: 9px; color: #6366f1; text-align: left; line-height: 1.4; margin-top: 1px; }
+          .course-location { display: block; font-size: 8px; color: #94a3b8; text-align: left; line-height: 1.4; }
         }
       }
     }
   }
 }
 
-/* --- 底部操作区 --- */
+/* ===== 底部导航卡片 ===== */
 .action-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
 }
-.nav-card .card-content { padding: 12px 8px; }
-.nav-card .card-icon { font-size: 20px; margin-bottom: 4px; }
-.nav-card .nav-text { font-size: 13px; }
-.nav-card .nav-desc { font-size: 10px; }
 .nav-card {
-  position: relative; border-radius: 14px; overflow: hidden; cursor: pointer; transition: transform 0.15s;
-  &:active { transform: scale(0.97); }
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  /* 重置微信小程序 button 默认样式 */
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  width: 100%;
+  &::after { border: none; }
+  &:active { transform: scale(0.95); }
+  &:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
 }
-.card-bg { position: absolute; inset: 0; opacity: 0.9; }
+.card-bg { position: absolute; inset: 0; opacity: 1; }
 .card-content {
-  position: relative; z-index: 1; width: 100%; padding: 16px; color: #fff;
+  position: relative; z-index: 1;
+  width: 100%; padding: 16px 12px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  box-sizing: border-box;
 }
-
 .nav-text { display: block; font-size: 15px; font-weight: 700; }
-.nav-desc { display: block; font-size: 11px; opacity: 0.85; }
-.footer-tip { text-align: center; color: #cbd5e1; font-size: 12px; margin-top: 10px; }
-.empty-hint { padding: 30px 0; text-align: center; }
-.empty-text { font-size: 14px; color: #94a3b8; }
+.nav-desc { display: block; font-size: 11px; opacity: 0.85; margin-top: 3px; }
+
 </style>

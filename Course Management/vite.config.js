@@ -11,7 +11,13 @@ export default defineConfig({
     extensions: ['.js', '.json', '.vue', '.scss', '.css']
   },
   server: {
-    port: 3000, // 推荐端口，避免与常见服务冲突
-    open: true  // 启动时自动打开浏览器
+    port: 3000,
+    open: false,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
+    }
   }
 })

@@ -11,4 +11,4 @@
  *
  * 本地开发时（模拟器）保持默认值 http://localhost:3001/api
  */
-export const apiBaseURL = 'https://cadillac-motion-move-scsi.trycloudflare.com/api'
+export const apiBaseURL = 'https://web-production-47e1a.up.railway.app/api'
