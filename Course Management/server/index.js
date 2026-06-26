@@ -578,20 +578,23 @@ async function ensureDatabase() {
     if (!fs.existsSync(schemaPath)) return;
 
     const sql = fs.readFileSync(schemaPath, 'utf8');
-    // 仅执行 CREATE TABLE IF NOT EXISTS 语句
+    // 执行建表语句和种子数据插入语句
     const statements = sql
       .split(';')
       .map(s => s.trim())
-      .filter(s => s && /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS/i.test(s));
+      .filter(s => s && (
+        /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS/i.test(s) ||
+        /^INSERT\s+IGNORE\s+INTO/i.test(s)
+      ));
 
     for (const stmt of statements) {
       try {
         await pool.execute(stmt);
       } catch (err) {
-        console.warn('[init] 建表警告:', err.message);
+        console.warn('[init] 执行SQL警告:', err.message);
       }
     }
-    console.log('[init] ✅ 数据库表结构已确认');
+    console.log('[init] ✅ 数据库表结构及种子数据已确认');
   } catch (err) {
     console.warn('[init] 数据库初始化跳过:', err.message);
   }
