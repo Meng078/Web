@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.certs/
+*.db
+*.db-journal
+.DS_Store
+*.log
+.env
+deploy-tunnel.js
+https-proxy.js
+start.bat
+stop.bat
+project.private.config.json

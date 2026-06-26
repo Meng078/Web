@@ -1,10 +1,31 @@
 {
+  "name": "智慧课表",
+  "appid": "__UNI__DEFAULT__APPID__",
+  "description": "智慧教务系统 - 课程管理小程序",
+  "versionName": "1.0.0",
+  "versionCode": "100",
   "h5": {
     "router": {
       "mode": "history",
       "base": "./"
     },
-    "title": "Web应用平台"
+    "title": "智慧课表"
+  },
+  "mp-weixin": {
+    "appid": "wx9184be4b1f59b23c",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "permission": {},
+    "usingComponents": true,
+    "darkmode": false,
+    "requiredBackgroundModes": [],
+    "lazyCodeLoading": "requiredComponents",
+    "style": "v2",
+    "compileType": "miniprogram"
   },
   "uniStatistics": {
     "enable": false
