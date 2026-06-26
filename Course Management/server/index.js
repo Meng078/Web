@@ -600,6 +600,57 @@ async function ensureDatabase() {
   }
 }
 
+/**
+ * POST /api/init-db
+ * 手动触发数据库初始化（导入种子数据）
+ * 仅云端环境可用，用于首次部署后手动补入数据
+ */
+app.post('/api/init-db', async (req, res) => {
+  try {
+    const pool = await getPool();
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    if (!fs.existsSync(schemaPath)) {
+      return res.status(404).json({ success: false, message: 'schema.sql 文件不存在' });
+    }
+
+    const sql = fs.readFileSync(schemaPath, 'utf8');
+    const statements = sql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s && (
+        /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS/i.test(s) ||
+        /^INSERT\s+IGNORE\s+INTO/i.test(s)
+      ));
+
+    let executed = 0;
+    let errors = [];
+
+    for (const stmt of statements) {
+      try {
+        await pool.execute(stmt);
+        executed++;
+      } catch (err) {
+        console.warn('[init-db] 执行SQL警告:', err.message);
+        errors.push(err.message);
+      }
+    }
+
+    console.log(`[init-db] 执行了 ${executed} 条SQL（共 ${statements.length} 条）`);
+
+    return res.json({
+      success: true,
+      message: `数据库初始化完成，成功执行 ${executed}/${statements.length} 条语句`,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (err) {
+    console.error('[init-db] 初始化失败:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: '数据库初始化失败: ' + err.message
+    });
+  }
+});
+
 // --------------- 服务器启动 ---------------
 
 app.listen(PORT, async () => {
