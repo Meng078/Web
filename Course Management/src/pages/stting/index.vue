@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue';
 
-// --- 每周起始日 ---
+// ★ xlsx 库仅在 H5 环境使用，微信小程序中不加载
+// 微信小程序不支持 Buffer/process 等 Node.js API，xlsx 无法在此环境运行
+
 const weekdayOptions = ['周一', '周日'];
 const weekStartDay = ref('周一');
 
-// --- 学期配置 ---
 const semesterConfig = ref({
   springStart: '03-01',
   springEnd: '07-15',
@@ -20,75 +21,134 @@ const semesterFields = [
   { key: 'fallEnd', label: '秋季学期结束' },
 ];
 
-// --- 加载已保存配置 ---
+const appInfo = {
+  name: '课表管理',
+  version: '1.0.0',
+  description: '一款简洁高效的课程表管理工具，支持学期配置、课程导入导出等功能。'
+};
+
 const loadConfig = () => {
   try {
     const savedWeekday = uni.getStorageSync('weekStartDay');
     if (savedWeekday) weekStartDay.value = savedWeekday;
-
     const savedSemester = uni.getStorageSync('semesterConfig');
     if (savedSemester) Object.assign(semesterConfig.value, savedSemester);
   } catch (e) {}
 };
 loadConfig();
 
-// --- 持久化到本地 ---
 const saveConfig = () => {
   uni.setStorageSync('weekStartDay', weekStartDay.value);
   uni.setStorageSync('semesterConfig', semesterConfig.value);
 };
 
-// --- 每周起始日变更 ---
 const onWeekStartChange = (e) => {
   weekStartDay.value = weekdayOptions[e.detail.value];
   saveConfig();
   uni.showToast({ title: '已保存', icon: 'success' });
 };
 
-// --- 学期日期变更 ---
 const onSemesterChange = (e, key) => {
-  semesterConfig.value[key] = e.detail.value.slice(5); // YYYY-MM-DD → MM-DD
+  semesterConfig.value[key] = e.detail.value.slice(5);
   saveConfig();
   uni.showToast({ title: '已保存', icon: 'success' });
 };
 
-// 将 MM-DD 转为 picker 可用完整日期
 const toPickerDate = (mmdd) => `2000-${mmdd}`;
 
-// --- 导出课程数据 ---
-const exportData = () => {
+const getCachedCourses = () => {
   let courses = [];
   try {
-    courses = uni.getStorageSync('courses') || [];
+    const cached = uni.getStorageSync('cachedCourses');
+    if (cached && cached.data) {
+      courses = cached.data;
+    }
   } catch (e) {}
+  return courses;
+};
 
-  if (courses.length === 0) {
+const exportData = async () => {
+  // 从正确的缓存 Key 读取课程数据
+  const courses = getCachedCourses();
+
+  if (!courses.length) {
     uni.showToast({ title: '暂无课程数据可导出', icon: 'none' });
     return;
   }
 
-  const payload = {
-    exportTime: new Date().toLocaleString('zh-CN'),
-    weekStartDay: weekStartDay.value,
-    semesterConfig: semesterConfig.value,
-    courseCount: courses.length,
-    courses
-  };
+  const fileName = `课表数据备份_${new Date().toISOString().slice(0, 10)}`;
 
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  // #ifdef H5
+  // H5 环境：使用 xlsx 库导出 Excel
+  const XLSX = await import('xlsx');
+  // 构建表格数据
+  const headers = [
+    '课程名称', '任课教师', '上课时间', '上课地点',
+    '星期', '时间段', '开始日期', '结束日期',
+    '开始时间', '结束时间'
+  ];
+  const rows = courses.map(c => [
+    c.course_name || '', c.teacher_name || '', c.course_time || '',
+    c.course_location || '', c.weekday || '', c.time_range || '',
+    c.start_date || '', c.end_date || '', c.start_time || '', c.end_time || ''
+  ]);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [
+    { wch: 20 }, { wch: 14 }, { wch: 22 }, { wch: 16 },
+    { wch: 8 },  { wch: 14 }, { wch: 12 }, { wch: 12 },
+    { wch: 10 }, { wch: 10 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, '课程数据');
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const fullFileName = `${fileName}.xlsx`;
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `课表数据备份_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = fullFileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
   uni.showToast({ title: '导出成功', icon: 'success' });
+  // #endif
+
+  // #ifndef H5
+  // 非 H5 环境（微信小程序等）：导出为 .txt 文件
+  try {
+    const fs = uni.getFileSystemManager();
+    const fullFileName = `${fileName}.txt`;
+    const tempPath = `${uni.env.USER_DATA_PATH}/${fullFileName}`;
+    const jsonData = JSON.stringify(courses, null, 2);
+    fs.writeFile({
+      filePath: tempPath,
+      data: jsonData,
+      encoding: 'utf8',
+      success() {
+        uni.saveFile({
+          tempFilePath: tempPath,
+          success(res) {
+            uni.showToast({ title: `已导出 ${courses.length} 条课程`, icon: 'success' });
+          },
+          fail() {
+            // saveFile 失败时，直接告知用户文件已生成
+            uni.showToast({ title: '备份文件已生成', icon: 'success' });
+          }
+        });
+      },
+      fail(err) {
+        console.error('导出失败:', err);
+        uni.showToast({ title: '导出失败，请重试', icon: 'none' });
+      }
+    });
+  } catch (e) {
+    console.error('导出异常:', e);
+    uni.showToast({ title: '导出失败', icon: 'none' });
+  }
+  // #endif
 };
 
-// --- 返回（强制绑定主页） ---
 const goBack = () => {
   uni.reLaunch({ url: '/pages/index/index' });
 };
@@ -99,25 +159,31 @@ const goBack = () => {
     <view class="bg-decoration">
       <view class="bg-circle bg-circle-1"></view>
       <view class="bg-circle bg-circle-2"></view>
+      <view class="bg-circle bg-circle-3"></view>
     </view>
 
     <view class="content-wrapper">
-      <!-- 顶部导航栏 -->
       <view class="navbar">
-        <view class="nav-back" @click="goBack">
-          <text class="icon-arrow">返回</text>
-        </view>
-        <text class="nav-title">课表设置</text>
+        <button class="nav-back" @click="goBack()">
+          <text class="nav-back-icon">‹</text>
+          <text class="nav-back-text">返回</text>
+        </button>
+        <text class="nav-title">设置</text>
         <view class="nav-placeholder"></view>
       </view>
 
-      <scroll-view scroll-y class="scroll-content">
-        <!-- 基本设置 -->
-        <view class="section-title">基本设置</view>
+      <scroll-view scroll-y class="scroll-content" show-scrollbar="false">
+        <view class="section-header">
+          <view class="section-icon section-icon-basic"></view>
+          <text class="section-title">基本设置</text>
+        </view>
         <view class="settings-card">
-          <picker mode="selector" :range="weekdayOptions" @change="onWeekStartChange">
+          <picker mode="selector" :range="weekdayOptions" @change="onWeekStartChange($event)">
             <view class="setting-item">
-              <text class="setting-label">每周起始日</text>
+              <view class="setting-left">
+                <text class="setting-icon-text">📅</text>
+                <text class="setting-label">每周起始日</text>
+              </view>
               <view class="setting-right">
                 <text class="setting-value">{{ weekStartDay }}</text>
                 <text class="setting-arrow">›</text>
@@ -126,20 +192,18 @@ const goBack = () => {
           </picker>
         </view>
 
-        <!-- 学期时间设置 -->
-        <view class="section-title">学期时间设置</view>
+        <view class="section-header">
+          <view class="section-icon section-icon-semester"></view>
+          <text class="section-title">学期时间设置</text>
+        </view>
         <view class="settings-card">
-          <view
-              v-for="field in semesterFields"
-              :key="field.key"
-          >
-            <picker
-                mode="date"
-                :value="toPickerDate(semesterConfig[field.key])"
-                @change="(e) => onSemesterChange(e, field.key)"
-            >
+          <view v-for="field in semesterFields" :key="field.key">
+            <picker mode="date" :value="toPickerDate(semesterConfig[field.key])" @change="onSemesterChange($event, field.key)">
               <view class="setting-item">
-                <text class="setting-label">{{ field.label }}</text>
+                <view class="setting-left">
+                  <text class="setting-icon-text">{{ field.key.includes('Start') ? '🌱' : '🍂' }}</text>
+                  <text class="setting-label">{{ field.label }}</text>
+                </view>
                 <view class="setting-right">
                   <text class="setting-value">{{ semesterConfig[field.key] }}</text>
                   <text class="setting-arrow">›</text>
@@ -149,20 +213,44 @@ const goBack = () => {
           </view>
         </view>
 
-        <!-- 数据管理 -->
-        <view class="section-title">数据管理</view>
+        <view class="section-header">
+          <view class="section-icon section-icon-data"></view>
+          <text class="section-title">数据管理</text>
+        </view>
         <view class="settings-card">
-          <view class="setting-item" @click="exportData">
-            <text class="setting-label">导出课程数据</text>
+          <button class="setting-item" @click="exportData()">
+            <view class="setting-left">
+              <text class="setting-icon-text">📤</text>
+              <view>
+                <text class="setting-label">导出课程数据</text>
+                <text class="setting-desc">将课程数据导出为 JSON 备份文件</text>
+              </view>
+            </view>
             <view class="setting-right">
-              <text class="setting-hint">JSON 备份</text>
+              <text class="setting-hint">备份</text>
               <text class="setting-arrow">›</text>
+            </view>
+          </button>
+        </view>
+
+        <view class="section-header">
+          <view class="section-icon section-icon-about"></view>
+          <text class="section-title">关于</text>
+        </view>
+        <view class="settings-card">
+          <view class="about-item">
+            <view class="about-logo">
+              <text class="about-logo-text">课</text>
+            </view>
+            <view class="about-info">
+              <text class="about-name">{{ appInfo.name }}</text>
+              <text class="about-version">v{{ appInfo.version }}</text>
+              <text class="about-desc">{{ appInfo.description }}</text>
             </view>
           </view>
         </view>
 
-        <!-- 占位 -->
-        <view style="height: 24px;"></view>
+        <view class="safe-bottom"></view>
 
         <view class="footer-tip">所有配置自动保存至本地</view>
       </scroll-view>
@@ -173,109 +261,246 @@ const goBack = () => {
 <style scoped lang="scss">
 .page-container {
   min-height: 100vh;
-  background-color: #eef2ff;
+  background-color: #f0f2f5;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  padding-top: var(--status-bar-height);
 }
 
 .bg-decoration {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; pointer-events: none;
   .bg-circle {
-    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
-    &.bg-circle-1 { width: 400px; height: 400px; background: #6366f1; top: -100px; right: -100px; }
-    &.bg-circle-2 { width: 300px; height: 300px; background: #10b981; bottom: -50px; left: -50px; }
+    position: absolute; border-radius: 50%; opacity: 0.25;
+    &.bg-circle-1 { width: 280px; height: 280px; background: linear-gradient(135deg, #6366f1, #8b5cf6); top: -100px; right: -60px; /* #ifdef H5 */ filter: blur(80px); /* #endif */ }
+    &.bg-circle-2 { width: 200px; height: 200px; background: linear-gradient(135deg, #10b981, #34d399); bottom: -40px; left: -30px; /* #ifdef H5 */ filter: blur(60px); /* #endif */ }
+    &.bg-circle-3 { width: 150px; height: 150px; background: linear-gradient(135deg, #f59e0b, #fbbf24); top: 40%; left: 60%; /* #ifdef H5 */ filter: blur(70px); /* #endif */ }
   }
 }
 
 .content-wrapper {
   position: relative; z-index: 1;
-  width: 100%; max-width: 1200px;
-  padding: 24px;
+  width: 100%; max-width: 600px;
+  padding: 10px;
   box-sizing: border-box;
 }
 
-/* --- 导航栏（与列表页 header-area 一致） --- */
 .navbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   position: relative;
+  padding: 4px 0;
 
   .nav-back {
     position: absolute;
     left: 0;
     cursor: pointer;
-    padding: 4px 12px;
-    border-radius: 8px;
-    background: rgba(99, 102, 241, 0.08);
-    transition: opacity 0.15s;
-    &:active { opacity: 0.6; }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+     gap: 2px;
+      padding: 2px 5px;
+      box-sizing: border-box;
+      border-radius: 7px;
+    background: rgba(255, 255, 255, 0.8);
+    /* #ifdef H5 */
+    backdrop-filter: blur(8px);
+    /* #endif */
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    transition: all 0.2s;
+    /* 重置微信小程序 button 默认样式 */
+    margin: 0;
+    outline: none;
+    height: auto;
+    line-height: normal;
+    min-width: 0;
+    &::after { border: none; }
+    &:active { opacity: 0.7; transform: scale(0.96); }
   }
-  .icon-arrow { font-size: 14px; color: #6366f1; font-weight: 600; }
+  .nav-back-icon { font-size: 18px; color: #6366f1; font-weight: 300; line-height: 1; }
+  .nav-back-text { font-size: 12px; color: #6366f1; font-weight: 500; }
   .nav-title {
-    font-size: 28px; font-weight: 800; color: #1e293b;
+    font-size: 18px; font-weight: 700; color: #1e293b;
+    letter-spacing: -0.3px;
   }
-  .nav-placeholder { display: none; }
+  .nav-placeholder { width: 62px; }
 }
 
-/* --- 滚动内容 --- */
 .scroll-content {
-  padding: 0;
+  padding: 0 2px;
   box-sizing: border-box;
 }
 
-/* --- 分区标题 --- */
-.section-title {
-  font-size: 13px; color: #94a3b8; font-weight: 600;
-  margin: 24px 0 8px 4px; letter-spacing: 0.5px;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 6px 4px;
+
+  .section-icon {
+    width: 3px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+
+    &.section-icon-basic { background: linear-gradient(180deg, #6366f1, #8b5cf6); }
+    &.section-icon-semester { background: linear-gradient(180deg, #10b981, #34d399); }
+    &.section-icon-data { background: linear-gradient(180deg, #f59e0b, #fbbf24); }
+    &.section-icon-about { background: linear-gradient(180deg, #6366f1, #06b6d4); }
+  }
+
+  .section-title {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
 }
 
-/* --- 设置卡片 --- */
 .settings-card {
-  background: #ffffff; border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(226, 232, 240, 0.6);
   overflow: hidden;
+  transition: box-shadow 0.2s;
 }
 
-/* --- 设置项 --- */
 .setting-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
-  cursor: pointer; transition: background 0.15s;
+  cursor: pointer;
+  transition: background 0.15s;
+  /* 重置微信小程序 button 默认样式 */
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  text-align: left;
+  box-sizing: border-box;
+  &::after { border: none; }
   &:active { background: #f8fafc; }
   &:last-child { border-bottom: none; }
 
-  .setting-label {
-    font-size: 15px; color: #1e293b; font-weight: 500;
+  .setting-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
   }
+
+  .setting-icon-text {
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .setting-label {
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 500;
+  }
+
+  .setting-desc {
+    display: block;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 1px;
+  }
+
   .setting-right {
-    display: flex; align-items: center; gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
   }
   .setting-value {
-    font-size: 14px; color: #6366f1; font-weight: 500;
+    font-size: 12px;
+    color: #6366f1;
+    font-weight: 500;
   }
   .setting-hint {
-    font-size: 12px; color: #94a3b8;
+    font-size: 11px;
+    color: #94a3b8;
   }
   .setting-arrow {
-    font-size: 18px; color: #cbd5e1;
+    font-size: 16px;
+    color: #cbd5e1;
+    font-weight: 300;
   }
 }
 
-/* --- 底部提示 --- */
+.about-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px;
+
+  .about-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.25);
+  }
+  .about-logo-text {
+    font-size: 20px;
+    color: #fff;
+    font-weight: 700;
+  }
+  .about-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .about-name {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 600;
+  }
+  .about-version {
+    font-size: 12px;
+    color: #6366f1;
+    font-weight: 500;
+  }
+  .about-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.4;
+    margin-top: 1px;
+  }
+}
+
+.safe-bottom {
+  height: 0;
+  /* #ifdef H5 */
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+  /* #endif */
+}
+
 .footer-tip {
-  text-align: center; color: #cbd5e1; font-size: 12px; padding: 20px 0;
+  text-align: center;
+  color: #cbd5e1;
+  font-size: 11px;
+  padding: 12px 0 8px;
 }
 
 @media (min-width: 768px) {
-  .content-wrapper {
-    max-width: 800px;
-  }
+  .content-wrapper { max-width: 640px; }
 }
 </style>

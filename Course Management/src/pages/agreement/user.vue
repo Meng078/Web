@@ -62,5 +62,5 @@
 </template>
 
 <style scoped lang="scss">
-@use "@/styles/agreement.scss";
+@import "@/styles/agreement.scss";
 </style>

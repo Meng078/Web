@@ -1,134 +1,172 @@
 <script setup>
-import {computed, onUnmounted, ref} from "vue";
+import {computed, ref} from "vue";
+import {registerAPI, loginAPI} from '@/api/index.js';
+import { setCurrentUser } from '@/utils/session.js';
 
-const phoneNumber = ref("");
-const verificationCode = ref("");
+const username = ref("");
+const password = ref("");
+const name = ref("");
+const userType = ref("student");
 const isagree = ref(false);
 const loading = ref(false);
-const countdown = ref(0);
+const showPassword = ref(false);
 
-let timer = null;
-
-const phoneError = computed(() => {
-  if (!phoneNumber.value) return "";
-  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) return "手机号格式不正确";
+const usernameError = computed(() => {
+  if (!username.value) return "";
+  if (username.value.length < 2) return "用户名至少2个字符";
   return "";
 });
 
-const codeError = computed(() => {
-  if (!verificationCode.value) return "";
-  if (!/^\d{4,6}$/.test(verificationCode.value)) return "验证码格式不正确";
+const nameError = computed(() => {
+  if (!name.value) return "";
+  if (name.value.length < 1) return "请输入姓名";
   return "";
 });
 
-const getVerificationCode = () => {
-  if (!phoneNumber.value) return uni.showToast({ title: "请输入手机号", icon: "none" });
-  if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) return uni.showToast({ title: "手机号格式不正确", icon: "none" });
-  if (countdown.value > 0) return;
+const passwordError = computed(() => {
+  if (!password.value) return "";
+  if (password.value.length < 6) return "密码至少6个字符";
+  return "";
+});
 
-  uni.showToast({ title: "验证码已发送", icon: "none" });
-  countdown.value = 60;
-  timer = setInterval(() => {
-    countdown.value--;
-    if (countdown.value <= 0) { clearInterval(timer); timer = null; }
-  }, 1000);
-};
-
-onUnmounted(() => {
-  if (timer) { clearInterval(timer); timer = null; }
+const canSubmit = computed(() => {
+  return username.value.length >= 2 && password.value.length >= 6 && name.value.length >= 1 && isagree.value;
 });
 
 const agreeChange = (e) => {
   isagree.value = e.detail.value.length > 0;
 };
 
-const submitForm = () => {
-  if (phoneError.value || codeError.value) return;
-  if (!phoneNumber.value) return uni.showToast({ title: "请输入手机号", icon: "none" });
-  if (!verificationCode.value) return uni.showToast({ title: "请输入验证码", icon: "none" });
+const submitForm = async () => {
+  if (!username.value) return uni.showToast({ title: "请输入用户名", icon: "none" });
+  if (!password.value) return uni.showToast({ title: "请输入密码", icon: "none" });
+  if (!name.value) return uni.showToast({ title: "请输入姓名", icon: "none" });
   if (!isagree.value) return uni.showToast({ title: "请先同意协议", icon: "none" });
 
   loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-    uni.showToast({ title: "注册成功", icon: "success" });
-    setTimeout(() => uni.reLaunch({ url: "/pages/index/index" }), 1500);
-  }, 1500);
+
+  const result = await registerAPI({
+    username: username.value,
+    password: password.value,
+    name: name.value,
+    user_type: userType.value
+  });
+
+  loading.value = false;
+
+  if (result.success) {
+    uni.showToast({ title: "注册成功，正在登录...", icon: "success" });
+
+    const loginResult = await loginAPI(username.value, password.value);
+    if (loginResult.success) {
+      setCurrentUser(loginResult.data);
+      setTimeout(() => uni.reLaunch({ url: "/pages/mine/mine" }), 1000);
+    } else {
+      setTimeout(() => uni.reLaunch({ url: "/pages/login/index" }), 1000);
+    }
+  } else {
+    uni.showToast({ title: result.message || "注册失败", icon: "none" });
+  }
 };
 
 const goToAgreement = (type) => {
   uni.navigateTo({ url: `/pages/agreement/${type}` });
 };
 
-const goBack = () => {
-  uni.reLaunch({ url: '/pages/index/index' });
+const goToLogin = () => {
+  uni.navigateTo({ url: '/pages/login/index' });
+};
+
+const goToMine = () => {
+  uni.reLaunch({ url: '/pages/mine/mine' });
 };
 </script>
 
 <template>
   <view class="login-page">
-    <!-- 背景遮罩与装饰 -->
     <view class="bg-decoration">
       <view class="bg-circle bg-circle-1"></view>
       <view class="bg-circle bg-circle-2"></view>
     </view>
 
-    <!-- 注册卡片 -->
     <view class="login-card">
-      <!-- 头部 -->
+      <view class="back-header">
+        <button class="back-btn" @tap="goToMine()">返回</button>
+      </view>
       <view class="card-header">
-        <text class="card-title">欢迎注册</text>
-        <text class="card-subtitle">注册后开启更多专属服务</text>
+        <text class="card-title">创建账号</text>
+        <text class="card-subtitle">注册后即可管理课程与课表</text>
       </view>
 
-      <!-- 表单 -->
       <view class="form-area">
-        <!-- 手机号 -->
-        <view class="form-group" :class="{ 'is-error': phoneError }">
+        <view class="form-group" :class="{ 'is-error': usernameError }">
           <view class="input-wrapper">
-            <input class="form-input" type="tel" placeholder="请输入手机号" maxlength="11" v-model="phoneNumber" />
+            <text class="input-icon">👤</text>
+            <input class="form-input" type="text" placeholder="请输入用户名（英文/拼音）" maxlength="50" v-model="username" />
           </view>
-          <view class="error-msg" v-if="phoneError">
-            <text class="error-text">{{ phoneError }}</text>
+          <view class="error-msg" v-if="usernameError">
+            <text class="error-text">{{ usernameError }}</text>
           </view>
         </view>
 
-        <!-- 验证码 -->
-        <view class="form-group" :class="{ 'is-error': codeError }">
+        <view class="form-group" :class="{ 'is-error': nameError }">
           <view class="input-wrapper">
-            <input class="form-input" type="number" placeholder="请输入验证码" maxlength="6" v-model="verificationCode" />
-            <view class="code-btn" :class="{ 'btn-disabled': countdown > 0 }" @click="getVerificationCode">
-              <text class="code-text">{{ countdown > 0 ? `${countdown}s` : "获取验证码" }}</text>
-            </view>
+            <text class="input-icon">📝</text>
+            <input class="form-input" type="text" placeholder="请输入真实姓名" maxlength="20" v-model="name" />
           </view>
-          <view class="error-msg" v-if="codeError">
-            <text class="error-text">{{ codeError }}</text>
+          <view class="error-msg" v-if="nameError">
+            <text class="error-text">{{ nameError }}</text>
           </view>
         </view>
 
-        <!-- 协议 -->
+        <view class="form-group" :class="{ 'is-error': passwordError }">
+          <view class="input-wrapper">
+            <text class="input-icon">🔒</text>
+            <input class="form-input" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码（至少6位）" maxlength="20" v-model="password" />
+            <text class="toggle-pwd" @tap="showPassword = !showPassword">
+              {{ showPassword ? '🙈' : '👁️' }}
+            </text>
+          </view>
+          <view class="error-msg" v-if="passwordError">
+            <text class="error-text">{{ passwordError }}</text>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <view class="radio-group">
+            <label class="radio-label" :class="{ active: userType === 'student' }" @tap="userType='student'">
+              <text class="radio-emoji">🎓</text>
+              <text>学生</text>
+            </label>
+            <label class="radio-label" :class="{ active: userType === 'teacher' }" @tap="userType='teacher'">
+              <text class="radio-emoji">👨‍🏫</text>
+              <text>教师</text>
+            </label>
+          </view>
+        </view>
+
         <view class="agreement-area">
-          <checkbox-group @change="agreeChange">
+          <checkbox-group @change="(e) => { isagree = e.detail.value.length > 0 }">
             <label class="checkbox-label">
               <checkbox value="agree" :checked="isagree" color="#6366f1" style="transform: scale(0.8)" />
             </label>
           </checkbox-group>
-          <view class="agreement-text">
+          <view class="agreement-text" @tap="isagree = !isagree">
             <text>我已阅读并同意</text>
-            <text class="link" @click="goToAgreement('user')">《用户协议》</text>
+            <text class="link" @tap.stop="goToAgreement('user')">《用户协议》</text>
             <text>、</text>
-            <text class="link" @click="goToAgreement('privacy')">《隐私保护协议》</text>
+            <text class="link" @tap.stop="goToAgreement('privacy')">《隐私保护协议》</text>
             <text>和</text>
-            <text class="link" @click="goToAgreement('recharge')">《平台充值协议》</text>
+            <text class="link" @tap.stop="goToAgreement('recharge')">《平台充值协议》</text>
           </view>
         </view>
 
-        <!-- 提交与返回区域 -->
         <view class="submit-area">
-          <button class="submit-btn" :class="{ 'btn-active': isagree && !loading }" @click="submitForm" :loading="loading" :disabled="!isagree">
-            <text class="btn-text">立即注册</text>
+          <!-- ★ 使用 button 替代 view，确保微信小程序中 @tap 事件正常触发 ★ -->
+          <button class="submit-btn" :class="{ 'btn-active': canSubmit }" @tap="submitForm()">
+            <text class="btn-text">{{ loading ? '注册中...' : '立即注册' }}</text>
           </button>
-          <text class="back-link" @click="goBack">取消并返回</text>
+          <button class="link-text" @tap="goToLogin()">已有账号？去登录</button>
         </view>
       </view>
     </view>
@@ -144,18 +182,23 @@ const goBack = () => {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  padding-top: var(--status-bar-height);
 }
 
-/* 背景装饰 */
 .bg-decoration {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
 }
 .bg-circle {
   position: absolute;
   border-radius: 50%;
+  /* #ifdef H5 */
   filter: blur(80px);
+  /* #endif */
   opacity: 0.4;
 }
 .bg-circle-1 {
@@ -173,7 +216,6 @@ const goBack = () => {
   left: -50px;
 }
 
-/* 注册卡片 */
 .login-card {
   position: relative;
   z-index: 1;
@@ -191,10 +233,29 @@ const goBack = () => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 头部 */
 .card-header {
   text-align: center;
   margin-bottom: 32px;
+}
+
+.back-header {
+  margin-bottom: 8px;
+}
+.back-btn {
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-block;
+  padding: 4px 0;
+  transition: color 0.2s;
+  /* 重置微信小程序 button 默认样式 */
+  margin: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: left;
+  &::after { border: none; }
+  &:active { color: #6366f1; }
 }
 .card-title {
   display: block;
@@ -209,7 +270,6 @@ const goBack = () => {
   color: #94a3b8;
 }
 
-/* 表单区域 */
 .form-area {
   width: 100%;
 }
@@ -237,11 +297,23 @@ const goBack = () => {
   }
 }
 
+.input-icon {
+  font-size: 18px;
+  margin-right: 10px;
+}
+
 .form-input {
   flex: 1;
   font-size: 15px;
   color: #1e293b;
   background: transparent;
+}
+
+.toggle-pwd {
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  user-select: none;
 }
 
 .error-msg {
@@ -253,27 +325,39 @@ const goBack = () => {
   color: #ef4444;
 }
 
-/* 验证码按钮 */
-.code-btn {
-  padding: 8px 14px;
-  background: rgba(99, 102, 241, 0.1);
-  border-radius: 8px;
+.radio-group {
+  display: flex;
+  gap: 12px;
+}
+.radio-label {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
-  &:active { transform: scale(0.95); }
-  &.btn-disabled {
-    background: #f1f5f9;
-    .code-text { color: #94a3b8; }
+  border: 2px solid transparent;
+
+  &.active {
+    background: #eef2ff;
+    color: #6366f1;
+    border-color: #6366f1;
+    font-weight: 600;
   }
-}
-.code-text {
-  font-size: 13px;
-  color: #6366f1;
-  font-weight: 600;
-  white-space: nowrap;
+
+  &:active { opacity: 0.8; }
 }
 
-/* 协议 */
+.radio-emoji {
+  font-size: 16px;
+}
+
 .agreement-area {
   display: flex;
   align-items: flex-start;
@@ -292,7 +376,6 @@ const goBack = () => {
   &:active { opacity: 0.8; }
 }
 
-/* 提交与返回区域 */
 .submit-area {
   display: flex;
   flex-direction: column;
@@ -301,10 +384,12 @@ const goBack = () => {
   margin-top: 8px;
 }
 
+/* ★ 改用 button 替代 view，解决微信小程序 @tap 不触发的问题 ★ */
 .submit-btn {
   width: 100%;
   height: 52px;
   line-height: 52px;
+  text-align: center;
   border-radius: 14px;
   border: none;
   background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
@@ -313,6 +398,10 @@ const goBack = () => {
   font-weight: 700;
   letter-spacing: 1px;
   transition: all 0.3s ease;
+  /* 重置微信小程序 button 默认样式 */
+  margin: 0;
+  padding: 0;
+  outline: none;
 
   &::after { border: none; }
 
@@ -321,22 +410,27 @@ const goBack = () => {
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
     cursor: pointer;
     &:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); }
-    &:hover { filter: brightness(1.05); }
   }
 
   .btn-text { color: inherit; }
 }
 
-/* 返回链接样式 */
-.back-link {
+.link-text {
   font-size: 14px;
-  color: #64748b;
+  color: #6366f1;
   cursor: pointer;
   transition: color 0.2s ease;
+  /* 重置微信小程序 button 默认样式 */
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  line-height: normal;
+  &::after { border: none; }
   &:active { opacity: 0.7; color: #475569; }
 }
 
-/* PC端响应式微调 */
 @media (max-width: 768px) {
   .login-card {
     max-width: 100%;

@@ -1,3 +1,6 @@
+cd "Course Management"
 npm run server
 npm run dev:h5
+npm run build:mp-weixin
+node deploy-tunnel.js
 git仓库：https://github.com/Meng078/Web.git
