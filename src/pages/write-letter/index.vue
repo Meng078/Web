@@ -13,24 +13,27 @@
     <!-- 编辑区域 -->
     <view class="card">
 
-      <!-- 书信格式占位提示 —— 增加了 !isFocused 的判断 -->
-      <view class= "sim-placeholder " v-show= "!content && !isFocused " >
-        <text class= "ph-line ph-salutation " >亲爱的姑娘/先生： </text >
-        <text class= "ph-line ph-body " >见字如面，展信舒颜…… </text >
-        <text class= "ph-line ph-body " >请输入你想说的话。 </text >
-      </view >
+      <!-- 背景图片（跨端兼容方案） -->
+      <image class="card-bg-img" src="/static/letter/009.jpg" mode="aspectFill"></image>
 
-      <!-- 文本输入框 —— 新增 focus 和 blur 事件 -->
+      <!-- 书信格式占位提示 -->
+      <view class="sim-placeholder" v-show="!content && !isFocused">
+        <text class="ph-line ph-salutation">亲爱的姑娘/先生：</text>
+        <text class="ph-line ph-body">见字如面，展信舒颜……</text>
+        <text class="ph-line ph-body">请输入你想说的话。</text>
+      </view>
+
+      <!-- 文本输入框 -->
       <textarea
-          class= "message-area "
-          v-model= "content "
-          maxlength= "900 "
-          :show-confirm-bar= "false "
-          placeholder= " "
-          :adjust-position= "true "
-          :cursor-spacing= "20 "
-          @focus= "onTextareaFocus "
-          @blur= "onTextareaBlur "
+          class="message-area"
+          v-model="content"
+          maxlength="900"
+          :show-confirm-bar="false"
+          placeholder=" "
+          :adjust-position="true"
+          :cursor-spacing="20"
+          @focus="onTextareaFocus"
+          @blur="onTextareaBlur"
       />
 
       <view class="footer-area">
@@ -147,10 +150,6 @@ const onTextareaBlur = () => {
 .card {
   flex: 1;
   margin: 0 16px;
-  background-image: url('../../assets/letter/009.jpg');
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
   border-radius: 12px;
   padding: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -159,6 +158,15 @@ const onTextareaBlur = () => {
   position: relative;
   z-index: 1;
   overflow: hidden;
+}
+
+.card-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
 }
 
 /* 半透明遮罩层，叠加在背景图上，实现透明效果 */

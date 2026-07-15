@@ -1,10 +1,30 @@
 {
+  "name": "Web应用平台",
+  "appid": "__UNI__DEFAULT__APPID__",
+  "description": "Web应用平台 - 跨端应用",
+  "versionName": "1.0.0",
+  "versionCode": "100",
   "h5": {
     "router": {
       "mode": "history",
       "base": "./"
     },
     "title": "Web应用平台"
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "darkmode": false,
+    "requiredBackgroundModes": [],
+    "lazyCodeLoading": "requiredComponents",
+    "style": "v2",
+    "compileType": "miniprogram"
   },
   "uniStatistics": {
     "enable": false

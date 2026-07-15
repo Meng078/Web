@@ -22,6 +22,8 @@ const codeError = computed(() => {
 });
 
 const getVerificationCode = () => {
+  // TODO: 后端短信验证码 API 未实现，此处仅为前端 Mock
+  // 接入后端后，请替换为调用 sendSmsAPI(phoneNumber.value)
   if (!phoneNumber.value) return uni.showToast({ title: "请输入手机号", icon: "none" });
   if (!/^1[3-9]\d{9}$/.test(phoneNumber.value)) return uni.showToast({ title: "手机号格式不正确", icon: "none" });
   if (countdown.value > 0) return;
@@ -42,6 +44,8 @@ const agreeChange = (e) => {
   isagree.value = e.detail.value.length > 0;
 };
 
+// TODO: 后端未实现，以下为 Mock 登录逻辑
+// 接入后端后，请将 submitForm 改为调用 loginAPI，并移除此 Mock 代码
 const submitForm = () => {
   if (phoneError.value || codeError.value) return;
   if (!phoneNumber.value) return uni.showToast({ title: "请输入手机号", icon: "none" });
@@ -49,6 +53,9 @@ const submitForm = () => {
   if (!isagree.value) return uni.showToast({ title: "请先同意协议", icon: "none" });
 
   loading.value = true;
+  // ★ Mock 登录：后端 API 就绪后替换为真实请求 ★
+  // const result = await loginAPI({ phone: phoneNumber.value, code: verificationCode.value })
+  // if (result.success) { ... } else { ... }
   setTimeout(() => {
     loading.value = false;
     uni.showToast({ title: "登录成功", icon: "success" });
