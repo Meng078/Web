@@ -1,35 +1,43 @@
 <template>
-  <view class="page-container">
+  <!-- #ifdef H5 -->
+  <view class="h5-page-container">
     <!-- 背景装饰 -->
-    <view class="bg-decoration">
-      <view class="bg-circle bg-circle-1"></view>
-      <view class="bg-circle bg-circle-2"></view>
+    <view class="h5-bg-decoration">
+      <view class="h5-bg-circle h5-bg-circle-1"></view>
+      <view class="h5-bg-circle h5-bg-circle-2"></view>
     </view>
 
-    <view class="content-wrapper">
+    <!-- 顶部导航栏 64px 毛玻璃 -->
+    <view class="h5-navbar">
+      <view class="h5-navbar-inner">
+        <text class="h5-back-btn" @click="goBackHome">← 返回主页</text>
+        <text class="h5-nav-title">列表管理</text>
+        <view class="h5-nav-right"></view>
+      </view>
+    </view>
+
+    <!-- 主体容器 max-width 1000px -->
+    <view class="h5-content-wrapper">
       <!-- 标题区域 -->
-      <view class="hero-section">
-        <view class="back-row">
-          <text class="back-link" @click="goBackHome">返回主页</text>
-        </view>
-        <text class="app-title">列表</text>
-        <text class="app-subtitle">数据管理 · 编辑与维护</text>
+      <view class="h5-hero-section">
+        <text class="h5-app-title">列表</text>
+        <text class="h5-app-subtitle">数据管理 · 编辑与维护</text>
       </view>
 
       <!-- 自定义下拉刷新指示器 -->
-      <view class="refresh-indicator" :style="{ height: indicatorHeight + 'px' }">
-        <view class="ri-inner" :style="{ opacity: indicatorOpacity }">
+      <view class="h5-refresh-indicator" :style="{ height: indicatorHeight + 'px' }">
+        <view class="h5-ri-inner" :style="{ opacity: indicatorOpacity }">
           <template v-if="pullState === 'pulling'">
-            <view class="ri-arrow ri-arrow-down"></view>
-            <text class="ri-text">下拉刷新</text>
+            <view class="h5-ri-arrow h5-ri-arrow-down"></view>
+            <text class="h5-ri-text">下拉刷新</text>
           </template>
           <template v-else-if="pullState === 'ready'">
-            <view class="ri-arrow ri-arrow-up"></view>
-            <text class="ri-text">释放刷新</text>
+            <view class="h5-ri-arrow h5-ri-arrow-up"></view>
+            <text class="h5-ri-text">释放刷新</text>
           </template>
           <template v-else-if="pullState === 'refreshing'">
-            <view class="ri-spinner"></view>
-            <text class="ri-text">刷新中...</text>
+            <view class="h5-ri-spinner"></view>
+            <text class="h5-ri-text">刷新中...</text>
           </template>
         </view>
       </view>
@@ -38,7 +46,7 @@
       <scroll-view
         ref="scrollViewRef"
         scroll-y
-        class="scroll-area"
+        class="h5-scroll-area"
         :style="scrollAreaStyle"
         @scroll="onScroll"
         @scrolltolower="onReachBottom"
@@ -52,14 +60,13 @@
       >
         <!-- 虚拟列表占位容器 -->
         <view
-          class="virtual-wrap"
+          class="h5-virtual-wrap"
           :style="{ height: virtualWrapHeight + 'px', position: 'relative' }"
         >
-          <!-- 仅渲染可见项 + buffer -->
           <view
             v-for="item in renderedItems"
             :key="item.id"
-            class="list-card virtual-item"
+            class="h5-list-card h5-virtual-item"
             :style="{
               position: 'absolute',
               top: '0',
@@ -68,30 +75,129 @@
               transform: 'translateY(' + item._top + 'px)',
             }"
           >
-            <text class="item-title">{{ item.title }}</text>
-            <view class="item-actions">
-              <button class="action-btn btn-edit" @click="handleEdit(item)">编辑</button>
-              <button class="action-btn btn-delete" @click="handleDelete(item)">删除</button>
+            <view class="h5-card-header">
+              <text class="h5-item-title">{{ item.title }}</text>
+              <view class="h5-item-actions">
+                <button class="h5-action-btn h5-btn-edit" @click="handleEdit(item)">编辑</button>
+                <button class="h5-action-btn h5-btn-delete" @click="handleDelete(item)">删除</button>
+              </view>
+            </view>
+            <view class="h5-card-meta">
+              <text class="h5-card-id">ID: {{ item.id }}</text>
+              <text class="h5-card-index">序号: {{ item._index }}</text>
             </view>
           </view>
         </view>
 
         <!-- 上拉加载区域 -->
-        <view class="load-more" @click="onClickLoadMore">
+        <view class="h5-load-more" @click="onClickLoadMore">
           <template v-if="loadState === 'default'">
-            <text class="lm-text">上拉加载更多</text>
+            <text class="h5-lm-text">上拉加载更多</text>
           </template>
           <template v-else-if="loadState === 'loading'">
-            <view class="lm-spinner"></view>
-            <text class="lm-text lm-active">努力加载中...</text>
+            <view class="h5-lm-spinner"></view>
+            <text class="h5-lm-text h5-lm-active">努力加载中...</text>
           </template>
           <template v-else>
-            <text class="lm-text lm-done">已完成全部加载</text>
+            <text class="h5-lm-text h5-lm-done">已完成全部加载</text>
           </template>
         </view>
       </scroll-view>
     </view>
   </view>
+  <!-- #endif -->
+
+  <!-- #ifdef MP-WEIXIN -->
+  <view class="mp-page-container">
+    <!-- 简洁头部 标题栏 + 返回按钮 -->
+    <view class="mp-header" :style="{ paddingTop: 'var(--status-bar-height)' }">
+      <view class="mp-header-inner">
+        <text class="mp-back-btn" @click="goBackHome">←</text>
+        <text class="mp-title">列表管理</text>
+        <view class="mp-header-right"></view>
+      </view>
+    </view>
+
+    <!-- 主体容器 全宽 -->
+    <view class="mp-content-wrapper">
+      <!-- 标题区域 -->
+      <view class="mp-hero-section">
+        <text class="mp-app-title">列表</text>
+        <text class="mp-app-subtitle">数据管理 · 编辑与维护</text>
+      </view>
+
+      <!-- 自定义下拉刷新指示器 -->
+      <view class="mp-refresh-indicator" :style="{ height: indicatorHeight + 'px' }">
+        <view class="mp-ri-inner" :style="{ opacity: indicatorOpacity }">
+          <template v-if="pullState === 'pulling'">
+            <view class="mp-ri-arrow mp-ri-arrow-down"></view>
+            <text class="mp-ri-text">下拉刷新</text>
+          </template>
+          <template v-else-if="pullState === 'ready'">
+            <view class="mp-ri-arrow mp-ri-arrow-up"></view>
+            <text class="mp-ri-text">释放刷新</text>
+          </template>
+          <template v-else-if="pullState === 'refreshing'">
+            <view class="mp-ri-spinner"></view>
+            <text class="mp-ri-text">刷新中...</text>
+          </template>
+        </view>
+      </view>
+
+      <!-- 滚动区域 -->
+      <scroll-view
+        ref="scrollViewRef"
+        scroll-y
+        class="mp-scroll-area"
+        :style="scrollAreaStyle"
+        @scroll="onScroll"
+        @scrolltolower="onReachBottom"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      >
+        <!-- 虚拟列表占位容器 -->
+        <view
+          class="mp-virtual-wrap"
+          :style="{ height: virtualWrapHeight + 'px', position: 'relative' }"
+        >
+          <view
+            v-for="item in renderedItems"
+            :key="item.id"
+            class="mp-list-card mp-virtual-item"
+            :style="{
+              position: 'absolute',
+              top: '0',
+              left: '0',
+              right: '0',
+              transform: 'translateY(' + item._top + 'px)',
+            }"
+          >
+            <text class="mp-item-title">{{ item.title }}</text>
+            <view class="mp-item-actions">
+              <button class="mp-action-btn mp-btn-edit" @click="handleEdit(item)">编辑</button>
+              <button class="mp-action-btn mp-btn-delete" @click="handleDelete(item)">删除</button>
+            </view>
+          </view>
+        </view>
+
+        <!-- 上拉加载区域 -->
+        <view class="mp-load-more" @click="onClickLoadMore">
+          <template v-if="loadState === 'default'">
+            <text class="mp-lm-text">上拉加载更多</text>
+          </template>
+          <template v-else-if="loadState === 'loading'">
+            <view class="mp-lm-spinner"></view>
+            <text class="mp-lm-text mp-lm-active">努力加载中...</text>
+          </template>
+          <template v-else>
+            <text class="mp-lm-text mp-lm-done">已完成全部加载</text>
+          </template>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+  <!-- #endif -->
 </template>
 
 <script setup>
@@ -131,7 +237,8 @@ const visibleRange = computed(() => {
 
   const listOffset = 200 // 标题区域近似高度
   const listScrollTop = Math.max(0, scrollTop.value - listOffset)
-  const viewH = typeof window !== 'undefined' ? window.innerHeight - 200 : 600
+  const sysInfo = uni.getSystemInfoSync()
+  const viewH = sysInfo.windowHeight - 200
 
   const start = Math.max(0, Math.floor(listScrollTop / ITEM_HEIGHT) - BUFFER)
   const end = Math.min(total, Math.ceil((listScrollTop + viewH) / ITEM_HEIGHT) + BUFFER)
@@ -342,9 +449,10 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.page-container {
+/* #ifdef H5 */
+.h5-page-container {
   min-height: 100vh;
-  background-color: #eef2ff;
+  background-color: #f8fafc;
   display: flex;
   justify-content: center;
   position: relative;
@@ -352,97 +460,124 @@ onMounted(() => {
 }
 
 /* 背景装饰 */
-.bg-decoration {
+.h5-bg-decoration {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
 }
-.bg-circle {
+
+.h5-bg-circle {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.4;
-}
-.bg-circle-1 {
-  width: 400px;
-  height: 400px;
-  background: #6366f1;
-  top: -100px;
-  right: -100px;
-}
-.bg-circle-2 {
-  width: 300px;
-  height: 300px;
-  background: #10b981;
-  bottom: -50px;
-  left: -50px;
+  opacity: 0.25;
 }
 
-.content-wrapper {
+.h5-bg-circle-1 {
+  width: 500px;
+  height: 500px;
+  background: #6366f1;
+  top: -150px;
+  right: -150px;
+}
+
+.h5-bg-circle-2 {
+  width: 400px;
+  height: 400px;
+  background: #8b5cf6;
+  bottom: -100px;
+  left: -100px;
+}
+
+/* 顶部导航栏 64px 毛玻璃 */
+.h5-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 100;
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.h5-navbar-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.h5-back-btn {
+  font-size: 16px;
+  color: #6366f1;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.h5-nav-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.h5-nav-right {
+  width: 80px;
+}
+
+/* 主体容器 */
+.h5-content-wrapper {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1200px;
-  padding: 0 24px;
+  max-width: 1000px;
+  padding: 88px 24px 24px 24px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding-top: 48px;
-  padding-bottom: 32px;
   height: 100vh;
   overflow: hidden;
 }
 
 /* 标题区域 */
-.hero-section {
+.h5-hero-section {
   text-align: center;
   margin-bottom: 0;
   flex-shrink: 0;
+  padding-bottom: 8px;
 }
 
-.back-row {
-  text-align: left;
-  margin-bottom: 16px;
-}
-
-.back-link {
-  font-size: 14px;
-  color: #6366f1;
-  cursor: pointer;
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 8px;
-  background: rgba(99, 102, 241, 0.08);
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: rgba(99, 102, 241, 0.15);
-  }
-
-  &:active {
-    opacity: 0.7;
-  }
-}
-
-.app-title {
+.h5-app-title {
   display: block;
   font-size: 32px;
   font-weight: 800;
-  color: #1e293b;
+  color: #0f172a;
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }
 
-.app-subtitle {
+.h5-app-subtitle {
   display: block;
-  font-size: 15px;
+  font-size: 16px;
   color: #64748b;
   letter-spacing: 0.5px;
   margin-bottom: 16px;
 }
 
-/* ====== 自定义下拉刷新指示器 ====== */
-.refresh-indicator {
+/* 下拉刷新指示器 */
+.h5-refresh-indicator {
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -451,7 +586,7 @@ onMounted(() => {
   transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ri-inner {
+.h5-ri-inner {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,7 +594,7 @@ onMounted(() => {
   transition: opacity 0.2s;
 }
 
-.ri-arrow {
+.h5-ri-arrow {
   width: 20px;
   height: 20px;
   border: 2px solid #6366f1;
@@ -468,33 +603,33 @@ onMounted(() => {
   transition: transform 0.25s;
 }
 
-.ri-arrow-down {
+.h5-ri-arrow-down {
   transform: rotate(45deg);
   margin-top: -8px;
 }
 
-.ri-arrow-up {
+.h5-ri-arrow-up {
   transform: rotate(-135deg);
   margin-top: 2px;
 }
 
-.ri-spinner {
+.h5-ri-spinner {
   width: 18px;
   height: 18px;
   border: 2px solid #e2e8f0;
   border-top-color: #6366f1;
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: h5Spin 0.7s linear infinite;
 }
 
-.ri-text {
-  font-size: 13px;
+.h5-ri-text {
+  font-size: 14px;
   color: #6366f1;
   font-weight: 500;
 }
 
-/* ====== 滚动区域 ====== */
-.scroll-area {
+/* 滚动区域 */
+.h5-scroll-area {
   flex: 1;
   min-height: 0;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -502,52 +637,330 @@ onMounted(() => {
   user-select: none;
 }
 
-/* 虚拟列表项卡片 */
-.virtual-wrap {
+.h5-virtual-wrap {
   will-change: transform;
 }
 
-.list-card {
-  background-color: #f8fafc;
+/* 列表卡片 */
+.h5-list-card {
+  background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 20px;
-  transition: box-shadow 0.25s ease;
+  border-radius: 16px;
+  padding: 24px;
   margin-bottom: 0;
   box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
 
   &:hover {
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+    transform: translateY(-2px);
   }
 }
 
-.virtual-item {
-  margin-bottom: 0;
-  // 每个 item 之间留出间距：通过 translateY 定位 + 容器高度 ITEM_HEIGHT 控制
+.h5-virtual-item {
   top: 0;
 }
 
-.item-title {
-  display: block;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 16px;
+.h5-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-.item-actions {
+.h5-item-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.h5-card-meta {
+  display: flex;
+  gap: 20px;
+}
+
+.h5-card-id,
+.h5-card-index {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.h5-item-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
 
-.action-btn {
+.h5-action-btn {
   flex: none;
   width: 100px;
-  height: 38px;
-  line-height: 38px;
+  height: 40px;
+  line-height: 40px;
   font-size: 14px;
-  border-radius: 19px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  font-weight: 500;
+
+  &::after {
+    border: none;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.h5-btn-edit {
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.h5-btn-delete {
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+/* 上拉加载区域 */
+.h5-load-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.h5-lm-text {
+  font-size: 14px;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+
+.h5-lm-active {
+  color: #6366f1;
+}
+
+.h5-lm-done {
+  color: #10b981;
+}
+
+.h5-lm-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: h5Spin 0.7s linear infinite;
+}
+
+@keyframes h5Spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.mp-page-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 简洁头部 */
+.mp-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mp-header-inner {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.mp-back-btn {
+  font-size: 20px;
+  color: #0f172a;
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+}
+
+.mp-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mp-header-right {
+  width: 44px;
+}
+
+/* 主体容器 */
+.mp-content-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding-top: calc(var(--status-bar-height) + 44px + 16px);
+  padding-bottom: 16px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 标题区域 */
+.mp-hero-section {
+  text-align: center;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
+
+.mp-app-title {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.mp-app-subtitle {
+  display: block;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+/* 下拉刷新指示器 */
+.mp-refresh-indicator {
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mp-ri-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.mp-ri-arrow {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #6366f1;
+  border-left: 0;
+  border-top: 0;
+  transition: transform 0.25s;
+}
+
+.mp-ri-arrow-down {
+  transform: rotate(45deg);
+  margin-top: -6px;
+}
+
+.mp-ri-arrow-up {
+  transform: rotate(-135deg);
+  margin-top: 2px;
+}
+
+.mp-ri-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: mpSpin 0.7s linear infinite;
+}
+
+.mp-ri-text {
+  font-size: 13px;
+  color: #6366f1;
+  font-weight: 500;
+}
+
+/* 滚动区域 */
+.mp-scroll-area {
+  flex: 1;
+  min-height: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.mp-virtual-wrap {
+  will-change: transform;
+}
+
+/* 列表卡片 */
+.mp-list-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+
+  &:active {
+    background-color: #f8fafc;
+  }
+}
+
+.mp-virtual-item {
+  top: 0;
+}
+
+.mp-item-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 14px;
+}
+
+.mp-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.mp-action-btn {
+  flex: none;
+  width: 80px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 14px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -563,60 +976,52 @@ onMounted(() => {
   }
 }
 
-.btn-edit {
+.mp-btn-edit {
   color: #fff;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
 }
 
-.btn-delete {
+.mp-btn-delete {
   color: #64748b;
   background: #f1f5f9;
 }
 
-/* ====== 上拉加载区域 ====== */
-.load-more {
+/* 上拉加载区域 */
+.mp-load-more {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 60px;
   gap: 8px;
-  cursor: pointer;
 }
 
-.lm-text {
+.mp-lm-text {
   font-size: 13px;
   color: #94a3b8;
   transition: color 0.2s;
 }
 
-.lm-active {
+.mp-lm-active {
   color: #6366f1;
 }
 
-.lm-done {
+.mp-lm-done {
   color: #10b981;
 }
 
-.lm-spinner {
+.mp-lm-spinner {
   width: 14px;
   height: 14px;
   border: 2px solid #e2e8f0;
   border-top-color: #6366f1;
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: mpSpin 0.7s linear infinite;
 }
 
-/* ====== 全局动画 ====== */
-@keyframes spin {
+@keyframes mpSpin {
   to {
     transform: rotate(360deg);
   }
 }
-
-/* PC端专属优化 */
-@media (min-width: 1024px) {
-  .app-title {
-    font-size: 38px;
-  }
-}
+/* #endif */
 </style>

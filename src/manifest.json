@@ -9,7 +9,8 @@
       "mode": "history",
       "base": "./"
     },
-    "title": "Web应用平台"
+    "title": "Web应用平台",
+    "favicon": "favicon.ico"
   },
   "mp-weixin": {
     "appid": "",

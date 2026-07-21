@@ -7,6 +7,9 @@ const isagree = ref(false);
 const loading = ref(false);
 const countdown = ref(0);
 
+const viewedAgreements = ref({ user: false, privacy: false });
+const allAgreementsViewed = computed(() => viewedAgreements.value.user && viewedAgreements.value.privacy);
+
 let timer = null;
 
 const phoneError = computed(() => {
@@ -40,8 +43,16 @@ onUnmounted(() => {
   if (timer) { clearInterval(timer); timer = null; }
 });
 
-const agreeChange = (e) => {
-  isagree.value = e.detail.value.length > 0;
+const onCheckboxTap = () => {
+  if (!isagree.value) {
+    if (!allAgreementsViewed.value) {
+      uni.showToast({ title: '请先阅读所有协议', icon: 'none' });
+      return;
+    }
+    isagree.value = true;
+  } else {
+    isagree.value = false;
+  }
 };
 
 // TODO: 后端未实现，以下为 Mock 登录逻辑
@@ -64,6 +75,7 @@ const submitForm = () => {
 };
 
 const goToAgreement = (type) => {
+  viewedAgreements.value = { ...viewedAgreements.value, [type]: true };
   uni.navigateTo({ url: `/pages/agreement/${type}` });
 };
 
@@ -104,7 +116,7 @@ const goBack = () => {
         <view class="form-group" :class="{ 'is-error': codeError }">
           <view class="input-wrapper">
             <input class="form-input" type="number" placeholder="请输入验证码" maxlength="6" v-model="verificationCode" />
-            <view class="code-btn" :class="{ 'btn-disabled': countdown > 0 }" @click="getVerificationCode">
+            <view class="code-btn" :class="{ 'btn-disabled': countdown > 0 }" @tap="getVerificationCode">
               <text class="code-text">{{ countdown > 0 ? `${countdown}s` : "获取验证码" }}</text>
             </view>
           </view>
@@ -115,27 +127,25 @@ const goBack = () => {
 
         <!-- 协议 -->
         <view class="agreement-area">
-          <checkbox-group @change="agreeChange">
-            <label class="checkbox-label">
-              <checkbox value="agree" :checked="isagree" color="#6366f1" style="transform: scale(0.8)" />
-            </label>
-          </checkbox-group>
+          <view class="custom-checkbox-wrap" @tap="onCheckboxTap()">
+            <view class="custom-checkbox" :class="{ 'is-checked': isagree }">
+              <text v-if="isagree" class="check-mark">✓</text>
+            </view>
+          </view>
           <view class="agreement-text">
             <text>我已阅读并同意</text>
-            <text class="link" @click="goToAgreement('user')">《用户协议》</text>
-            <text>、</text>
-            <text class="link" @click="goToAgreement('privacy')">《隐私保护协议》</text>
+            <text class="link" @tap.stop="goToAgreement('user')">《用户协议》</text>
             <text>和</text>
-            <text class="link" @click="goToAgreement('recharge')">《平台充值协议》</text>
+            <text class="link" @tap.stop="goToAgreement('privacy')">《隐私保护协议》</text>
           </view>
         </view>
 
         <!-- 提交与返回区域 -->
         <view class="submit-area">
-          <button class="submit-btn" :class="{ 'btn-active': isagree && !loading }" @click="submitForm" :loading="loading" :disabled="!isagree">
+          <button class="submit-btn" :class="{ 'btn-active': isagree && !loading }" @tap="submitForm" :loading="loading" :disabled="!isagree">
             <text class="btn-text">立即登录</text>
           </button>
-          <text class="back-link" @click="goBack">取消并返回</text>
+          <text class="back-link" @tap="goBack">取消并返回</text>
         </view>
       </view>
     </view>
@@ -144,6 +154,7 @@ const goBack = () => {
 
 <style scoped lang="scss">
 .login-page {
+  width: 100%;
   min-height: 100vh;
   background-color: #f8fafc;
   display: flex;
@@ -151,6 +162,7 @@ const goBack = () => {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* 背景装饰 */
@@ -162,7 +174,9 @@ const goBack = () => {
 .bg-circle {
   position: absolute;
   border-radius: 50%;
+  /* #ifdef H5 */
   filter: blur(80px);
+  /* #endif */
   opacity: 0.4;
 }
 .bg-circle-1 {
@@ -265,8 +279,10 @@ const goBack = () => {
   padding: 8px 14px;
   background: rgba(99, 102, 241, 0.1);
   border-radius: 8px;
+  /* #ifdef H5 */
   cursor: pointer;
   transition: all 0.2s;
+  /* #endif */
   &:active { transform: scale(0.95); }
   &.btn-disabled {
     background: #f1f5f9;
@@ -283,9 +299,39 @@ const goBack = () => {
 /* 协议 */
 .agreement-area {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   margin: 24px 0 32px;
   gap: 8px;
+  width: 100%;
+}
+.custom-checkbox-wrap {
+  flex-shrink: 0;
+  padding: 12px;
+  margin: -12px -4px -12px 0;
+  /* #ifdef H5 */
+  cursor: pointer;
+  /* #endif */
+}
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  &.is-checked {
+    background: #6366f1;
+    border-color: #6366f1;
+  }
+}
+.check-mark {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
 }
 .agreement-text {
   font-size: 13px;
@@ -295,7 +341,9 @@ const goBack = () => {
 }
 .link {
   color: #6366f1;
+  /* #ifdef H5 */
   cursor: pointer;
+  /* #endif */
   &:active { opacity: 0.8; }
 }
 
@@ -326,9 +374,11 @@ const goBack = () => {
   &.btn-active {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+    /* #ifdef H5 */
     cursor: pointer;
-    &:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); }
     &:hover { filter: brightness(1.05); }
+    /* #endif */
+    &:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); }
   }
 
   .btn-text { color: inherit; }
@@ -338,8 +388,10 @@ const goBack = () => {
 .back-link {
   font-size: 14px;
   color: #64748b;
+  /* #ifdef H5 */
   cursor: pointer;
   transition: color 0.2s ease;
+  /* #endif */
   &:active { opacity: 0.7; color: #475569; }
 }
 

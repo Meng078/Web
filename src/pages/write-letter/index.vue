@@ -1,59 +1,3 @@
-<template>
-  <view class="page-container">
-
-    <view class="safe-area-top"></view>
-
-    <!-- 头部导航 -->
-    <view class="header">
-      <text class="back-icon" @click="goBack"> &#10094; </text>
-      <text class="title">纸质书信</text>
-      <view style="width: 24px;"></view>
-    </view>
-
-    <!-- 编辑区域 -->
-    <view class="card">
-
-      <!-- 背景图片（跨端兼容方案） -->
-      <image class="card-bg-img" src="/static/letter/009.jpg" mode="aspectFill"></image>
-
-      <!-- 书信格式占位提示 -->
-      <view class="sim-placeholder" v-show="!content && !isFocused">
-        <text class="ph-line ph-salutation">亲爱的姑娘/先生：</text>
-        <text class="ph-line ph-body">见字如面，展信舒颜……</text>
-        <text class="ph-line ph-body">请输入你想说的话。</text>
-      </view>
-
-      <!-- 文本输入框 -->
-      <textarea
-          class="message-area"
-          v-model="content"
-          maxlength="900"
-          :show-confirm-bar="false"
-          placeholder=" "
-          :adjust-position="true"
-          :cursor-spacing="20"
-          @focus="onTextareaFocus"
-          @blur="onTextareaBlur"
-      />
-
-      <view class="footer-area">
-        <text class="counter">{{ content.length }}/900</text>
-      </view>
-    </view>
-
-    <!-- 底部操作栏 -->
-    <view class="action-area">
-      <button
-          class="send-btn"
-          :class="{ disabled: content.trim() === '' }"
-          @click="handleNext"
-      >
-        下一步
-      </button>
-    </view>
-  </view>
-</template>
-
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
@@ -113,54 +57,223 @@ const onTextareaBlur = () => {
 };
 </script>
 
+<template>
+  <view class="page-root">
+
+    <!-- #ifdef H5 -->
+    <view class="h5-page">
+      <!-- 桌面端顶部栏 -->
+      <view class="h5-topbar">
+        <view class="h5-topbar-inner">
+          <view class="h5-topbar-left" @click="goBack">
+            <text class="h5-topbar-back">←</text>
+            <text class="h5-topbar-back-text">返回</text>
+          </view>
+          <text class="h5-topbar-title">纸质书信</text>
+          <view class="h5-topbar-right">
+            <text class="h5-topbar-counter">{{ content.length }}/900</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 居中编辑器 -->
+      <view class="h5-editor-wrap">
+        <view class="h5-card">
+          <!-- 背景图片 -->
+          <image class="h5-card-bg" src="/static/letter/009.jpg" mode="aspectFill"></image>
+
+          <!-- 半透明遮罩 -->
+          <view class="h5-card-overlay"></view>
+
+          <!-- 书信格式占位提示 -->
+          <view class="h5-placeholder" v-show="!content && !isFocused">
+            <text class="h5-ph-line h5-ph-salutation">亲爱的姑娘/先生：</text>
+            <text class="h5-ph-line h5-ph-body">见字如面，展信舒颜……</text>
+            <text class="h5-ph-line h5-ph-body">请输入你想说的话。</text>
+          </view>
+
+          <!-- 文本输入框 -->
+          <textarea
+            class="h5-textarea"
+            v-model="content"
+            maxlength="900"
+            :show-confirm-bar="false"
+            placeholder=" "
+            :adjust-position="true"
+            :cursor-spacing="20"
+            @focus="onTextareaFocus"
+            @blur="onTextareaBlur"
+          />
+        </view>
+
+        <!-- 底部操作栏 -->
+        <view class="h5-action">
+          <button
+            class="h5-send-btn"
+            :class="{ 'h5-send-disabled': content.trim() === '' }"
+            @click="handleNext"
+          >
+            下一步
+          </button>
+        </view>
+      </view>
+    </view>
+    <!-- #endif -->
+
+    <!-- #ifdef MP-WEIXIN -->
+    <view class="mp-page">
+      <!-- 头部标题栏 -->
+      <view class="mp-header">
+        <view class="mp-header-inner">
+          <view class="mp-header-left" @click="goBack">
+            <text class="mp-back-icon">‹</text>
+          </view>
+          <text class="mp-header-title">纸质书信</text>
+          <view class="mp-header-right">
+            <text class="mp-header-counter">{{ content.length }}/900</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 全屏编辑器 -->
+      <view class="mp-card">
+        <!-- 背景图片 -->
+        <image class="mp-card-bg" src="/static/letter/009.jpg" mode="aspectFill"></image>
+
+        <!-- 半透明遮罩 -->
+        <view class="mp-card-overlay"></view>
+
+        <!-- 书信格式占位提示 -->
+        <view class="mp-placeholder" v-show="!content && !isFocused">
+          <text class="mp-ph-line mp-ph-salutation">亲爱的姑娘/先生：</text>
+          <text class="mp-ph-line mp-ph-body">见字如面，展信舒颜……</text>
+          <text class="mp-ph-line mp-ph-body">请输入你想说的话。</text>
+        </view>
+
+        <!-- 文本输入框 -->
+        <textarea
+          class="mp-textarea"
+          v-model="content"
+          maxlength="900"
+          :show-confirm-bar="false"
+          placeholder=" "
+          :adjust-position="true"
+          :cursor-spacing="20"
+          @focus="onTextareaFocus"
+          @blur="onTextareaBlur"
+        />
+      </view>
+
+      <!-- 底部操作栏 -->
+      <view class="mp-action">
+        <button
+          class="mp-send-btn"
+          :class="{ 'mp-send-disabled': content.trim() === '' }"
+          @click="handleNext"
+        >
+          下一步
+        </button>
+      </view>
+    </view>
+    <!-- #endif -->
+
+  </view>
+</template>
+
 <style scoped lang="scss">
-.page-container {
+/* ======================== H5 PC 端样式 ======================== */
+/* #ifdef H5 */
+.h5-page {
   min-height: 100vh;
-  position: relative;
+  background-color: #f8fafc;
   display: flex;
   flex-direction: column;
-  background-color: #f5f5f5;
 }
 
-.safe-area-top {
-  padding-top: 16px;
+/* 桌面端顶部栏 */
+.h5-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid #e2e8f0;
 }
-
-.header {
+.h5-topbar-inner {
+  max-width: 700px;
+  margin: 0 auto;
+  height: 64px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  margin-bottom: 16px;
-  position: relative;
-  z-index: 2;
 }
-
-.back-icon {
-  font-size: 24px;
-  color: #333;
+.h5-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.06);
+  transition: background 0.2s ease;
+  &:hover {
+    background: rgba(99, 102, 241, 0.12);
+  }
 }
-
-.title {
-  font-size: 18px;
+.h5-topbar-back {
+  font-size: 16px;
+  color: #6366f1;
   font-weight: 600;
-  color: #333;
+}
+.h5-topbar-back-text {
+  font-size: 14px;
+  color: #6366f1;
+  font-weight: 500;
+}
+.h5-topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.h5-topbar-right {
+  min-width: 80px;
+  display: flex;
+  justify-content: flex-end;
+}
+.h5-topbar-counter {
+  font-size: 13px;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
 }
 
-.card {
+/* 居中编辑器 */
+.h5-editor-wrap {
   flex: 1;
-  margin: 0 16px;
-  border-radius: 12px;
-  padding: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 88px 24px 32px;
   display: flex;
   flex-direction: column;
-  position: relative;
-  z-index: 1;
+}
+
+.h5-card {
+  flex: 1;
+  min-height: 400px;
+  border-radius: 16px;
   overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
 }
-
-.card-bg-img {
+.h5-card-bg {
   position: absolute;
   top: 0;
   left: 0;
@@ -168,26 +281,23 @@ const onTextareaBlur = () => {
   height: 100%;
   z-index: 0;
 }
-
-/* 半透明遮罩层，叠加在背景图上，实现透明效果 */
-.card::before {
-  content: '';
+.h5-card-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.55);
   z-index: 0;
 }
 
-/* 书信格式占位提示 —— pointer-events:none 确保点击穿透到 textarea */
-.sim-placeholder {
+/* 占位提示 */
+.h5-placeholder {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  padding: 20px;
+  padding: 24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -195,77 +305,220 @@ const onTextareaBlur = () => {
   user-select: none;
   z-index: 1;
 }
-
-.ph-line {
+.h5-ph-line {
   display: block;
   font-size: 16px;
-  line-height: 1.8;
-  color: #333;
+  line-height: 1.9;
+  color: #475569;
 }
-
-.ph-salutation {
-  margin-bottom: 12px;
+.h5-ph-salutation {
+  margin-bottom: 16px;
+  font-weight: 500;
 }
-
-.ph-body {
+.h5-ph-body {
   text-indent: 2em;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
-/* 输入框覆盖整个卡片，保证任意区域可点击编辑 */
-.message-area {
+/* 输入框 */
+.h5-textarea {
   width: 100%;
   flex: 1;
-  min-height: 200px;
-  padding: 20px;
+  min-height: 300px;
+  padding: 24px;
   box-sizing: border-box;
   border: none;
   outline: none;
   font-size: 16px;
-  line-height: 1.8;
-  color: #333;
+  line-height: 1.9;
+  color: #1e293b;
   resize: none;
+  cursor: text;
   background: transparent;
   position: relative;
   z-index: 2;
-  cursor: text;
+  font-family: inherit;
 }
 
-.footer-area {
-  height: 40px;
+/* 底部操作栏 */
+.h5-action {
+  padding-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+.h5-send-btn {
+  width: 100%;
+  height: 52px;
+  line-height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+.h5-send-disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  &:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+/* #endif */
+
+/* ======================== MP-WEIXIN 小程序端样式 ======================== */
+/* #ifdef MP-WEIXIN */
+.mp-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部标题栏 */
+.mp-header {
+  background: #ffffff;
+  border-bottom: 1rpx solid #e2e8f0;
   flex-shrink: 0;
-  margin-top: auto;
-  padding: 0 20px;
+}
+.mp-header-inner {
+  padding-top: var(--status-bar-height);
+  height: 88rpx;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+}
+.mp-header-left {
+  width: 80rpx;
+  display: flex;
+  align-items: center;
+}
+.mp-back-icon {
+  font-size: 44rpx;
+  color: #0f172a;
+}
+.mp-header-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+.mp-header-right {
+  min-width: 100rpx;
+  display: flex;
   justify-content: flex-end;
 }
-
-.counter {
-  font-size: 12px;
-  color: #000;
+.mp-header-counter {
+  font-size: 24rpx;
+  color: #94a3b8;
 }
 
-.action-area {
-  padding: 20px 24px;
-  margin-bottom: env(safe-area-inset-bottom);
+/* 全屏编辑器 */
+.mp-card {
+  flex: 1;
+  margin: 24rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+.mp-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+.mp-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.55);
+  z-index: 0;
+}
+
+/* 占位提示 */
+.mp-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 32rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 1;
+}
+.mp-ph-line {
+  display: block;
+  font-size: 30rpx;
+  line-height: 1.9;
+  color: #475569;
+}
+.mp-ph-salutation {
+  margin-bottom: 24rpx;
+  font-weight: 500;
+}
+.mp-ph-body {
+  text-indent: 2em;
+  margin-bottom: 8rpx;
+}
+
+/* 输入框 */
+.mp-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 400rpx;
+  padding: 32rpx;
+  box-sizing: border-box;
+  border: none;
+  font-size: 30rpx;
+  line-height: 1.9;
+  color: #1e293b;
+  background: transparent;
   position: relative;
   z-index: 2;
 }
 
-.send-btn {
-  background-color: #4caf50; /* 修正：原代码为 back ground-color */
-  color: #fff;
-  border-radius: 50px;
-  font-size: 16px;
-  font-weight: bold;
+/* 底部操作栏 */
+.mp-action {
+  padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+.mp-send-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  border-radius: 48rpx;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 600;
   border: none;
-  height: 50px;
-  line-height: 50px;
+  &:active {
+    opacity: 0.85;
+  }
 }
-
-.disabled {
-  background-color: #ccc !important; /* 修正：原代码为 !i mportant */
-  color: #999 !important;
+.mp-send-disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
 }
+/* #endif */
 </style>
