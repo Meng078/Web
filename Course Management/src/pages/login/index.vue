@@ -1,22 +1,26 @@
 <script setup>
 import {computed, ref} from "vue";
-import {onShow} from '@dcloudio/uni-app';
+import {onBackPress} from "@dcloudio/uni-app";
 import {loginAPI} from '@/api/index.js';
-import { getCurrentUser, setCurrentUser } from '@/utils/session.js';
+import { setCurrentUser } from '@/utils/session.js';
+
+// 拦截返回操作：不管何时何种情况，在登录页面执行返回操作后直接退出/关闭小程序
+onBackPress(() => {
+  // #ifdef MP-WEIXIN
+  uni.exitMiniProgram();
+  // #endif
+  // 阻止默认返回行为，不再进行其他跳转
+  return true;
+});
 
 const username = ref("");
 const password = ref("");
 const isagree = ref(false);
 const loading = ref(false);
-const showPassword = ref(false);
 
-// 已登录则自动跳转到个人信息页面
-onShow(() => {
-  const user = getCurrentUser();
-  if (user) {
-    uni.reLaunch({ url: '/pages/mine/mine' });
-  }
-});
+// 协议查看追踪：用户必须先点开查看两个协议后才能勾选同意
+const viewedAgreements = ref({ user: false, privacy: false });
+const allAgreementsViewed = computed(() => viewedAgreements.value.user && viewedAgreements.value.privacy);
 
 const usernameError = computed(() => {
   if (!username.value) return "";
@@ -41,21 +45,38 @@ const submitForm = async () => {
 
   loading.value = true;
 
-  const result = await loginAPI(username.value, password.value);
+  try {
+    const result = await loginAPI(username.value, password.value);
 
-  loading.value = false;
-
-  if (result.success) {
-    setCurrentUser(result.data);
-    uni.showToast({ title: "登录成功", icon: "success" });
-    setTimeout(() => uni.reLaunch({ url: "/pages/mine/mine" }), 800);
-  } else {
-    uni.showToast({ title: result.message || "登录失败", icon: "none" });
+    if (result.success) {
+      setCurrentUser(result.data, result.token);
+      uni.showToast({ title: "登录成功", icon: "success" });
+      setTimeout(() => uni.reLaunch({ url: "/pages/mine/mine" }), 800);
+    } else {
+      uni.showToast({ title: result.message || "登录失败", icon: "none" });
+    }
+  } catch (err) {
+    uni.showToast({ title: (err && err.message) || "网络错误，请检查网络连接", icon: "none" });
+  } finally {
+    loading.value = false;
   }
 };
 
 const goToAgreement = (type) => {
+  viewedAgreements.value = { ...viewedAgreements.value, [type]: true };
   uni.navigateTo({ url: `/pages/agreement/${type}` });
+};
+
+const onCheckboxTap = () => {
+  if (!isagree.value) {
+    if (!allAgreementsViewed.value) {
+      uni.showToast({ title: '请先阅读所有协议', icon: 'none' });
+      return;
+    }
+    isagree.value = true;
+  } else {
+    isagree.value = false;
+  }
 };
 
 const goToRegister = () => {
@@ -90,10 +111,7 @@ const goToRegister = () => {
         <view class="form-group" :class="{ 'is-error': passwordError }">
           <view class="input-wrapper">
             <text class="input-icon">🔒</text>
-            <input class="form-input" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" maxlength="20" v-model="password" />
-            <text class="toggle-pwd" @tap="showPassword = !showPassword">
-              {{ showPassword ? '🙈' : '👁️' }}
-            </text>
+            <input class="form-input" password placeholder="请输入密码" maxlength="20" v-model="password" />
           </view>
           <view class="error-msg" v-if="passwordError">
             <text class="error-text">{{ passwordError }}</text>
@@ -102,18 +120,16 @@ const goToRegister = () => {
 
         <!-- 协议区域 -->
         <view class="agreement-area">
-          <checkbox-group @change="(e) => { isagree = e.detail.value.length > 0 }">
-            <label class="checkbox-label">
-              <checkbox value="agree" :checked="isagree" color="#6366f1" style="transform: scale(0.8)" />
-            </label>
-          </checkbox-group>
-          <view class="agreement-text" @tap="isagree = !isagree">
+          <view class="custom-checkbox-wrap" @tap="onCheckboxTap()">
+            <view class="custom-checkbox" :class="{ 'is-checked': isagree }">
+              <text v-if="isagree" class="check-mark">✓</text>
+            </view>
+          </view>
+          <view class="agreement-text">
             <text>我已阅读并同意</text>
             <text class="link" @tap.stop="goToAgreement('user')">《用户协议》</text>
-            <text>、</text>
-            <text class="link" @tap.stop="goToAgreement('privacy')">《隐私保护协议》</text>
             <text>和</text>
-            <text class="link" @tap.stop="goToAgreement('recharge')">《平台充值协议》</text>
+            <text class="link" @tap.stop="goToAgreement('privacy')">《隐私保护协议》</text>
           </view>
         </view>
 
@@ -132,6 +148,7 @@ const goToRegister = () => {
 
 <style scoped lang="scss">
 .login-page {
+  width: 100%;
   min-height: 100vh;
   background-color: #f8fafc;
   display: flex;
@@ -140,6 +157,7 @@ const goToRegister = () => {
   position: relative;
   overflow: hidden;
   padding-top: var(--status-bar-height);
+  box-sizing: border-box;
 }
 
 .bg-decoration {
@@ -203,10 +221,12 @@ const goToRegister = () => {
 .back-btn {
   font-size: 13px;
   color: #64748b;
+  /* #ifdef H5 */
   cursor: pointer;
+  transition: color 0.2s;
+  /* #endif */
   display: inline-block;
   padding: 4px 0;
-  transition: color 0.2s;
   &:active { color: #6366f1; }
 }
 .card-title {
@@ -263,9 +283,11 @@ const goToRegister = () => {
 
 .toggle-pwd {
   font-size: 16px;
+  /* #ifdef H5 */
   cursor: pointer;
-  padding: 4px;
   user-select: none;
+  /* #endif */
+  padding: 4px;
 }
 
 .error-msg {
@@ -279,19 +301,55 @@ const goToRegister = () => {
 
 .agreement-area {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   margin: 16px 0 20px;
-  gap: 6px;
+  gap: 8px;
+  /* 宽度与密码框（input-wrapper）一致 */
+  width: 100%;
+  box-sizing: border-box;
+}
+.custom-checkbox-wrap {
+  flex-shrink: 0;
+  padding: 12px;
+  margin: -12px -4px -12px 0;
+  /* #ifdef H5 */
+  cursor: pointer;
+  /* #endif */
+}
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  &.is-checked {
+    background: #6366f1;
+    border-color: #6366f1;
+  }
+}
+.check-mark {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
 }
 .agreement-text {
   font-size: 12px;
   color: #64748b;
   line-height: 1.5;
   flex: 1;
+  /* 文字始终在一行显示，不换行 */
+  white-space: nowrap;
+  overflow: visible;
 }
 .link {
   color: #6366f1;
+  /* #ifdef H5 */
   cursor: pointer;
+  /* #endif */
   &:active { opacity: 0.8; }
 }
 
@@ -325,7 +383,9 @@ const goToRegister = () => {
   &.btn-active {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    /* #ifdef H5 */
     cursor: pointer;
+    /* #endif */
     &:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); }
   }
 
@@ -335,7 +395,9 @@ const goToRegister = () => {
 .link-text {
   font-size: 13px;
   color: #6366f1;
+  /* #ifdef H5 */
   cursor: pointer;
+  /* #endif */
   /* 重置微信小程序 button 默认样式 */
   margin: 0;
   padding: 0;

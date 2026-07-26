@@ -8,7 +8,7 @@
  *   MYSQL_HOST     - 数据库主机地址（默认 127.0.0.1）
  *   MYSQL_PORT     - 数据库端口（默认 3306）
  *   MYSQL_USER     - 数据库用户名（默认 root）
- *   MYSQL_PASSWORD - 数据库密码
+ *   MYSQL_PASSWORD - 数据库密码（必须通过环境变量设置，无默认值）
  *   MYSQL_DATABASE - 数据库名称（默认 course_management）
  *   DATABASE_URL   - Railway 提供的完整连接字符串（优先级最高）
  */
@@ -34,7 +34,7 @@ function getConfig() {
     host: process.env.MYSQL_HOST || '127.0.0.1',
     port: parseInt(process.env.MYSQL_PORT || '3306', 10),
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || 'Hykda8848&',
+    password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'course_management',
     charset: 'utf8mb4',
     connectionLimit: 10,

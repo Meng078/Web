@@ -10,8 +10,15 @@ export default defineConfig({
     },
     extensions: ['.js', '.json', '.vue', '.scss', '.css']
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['legacy-js-api']
+      }
+    }
+  },
   server: {
-    port: 3000,
+    port: 5174,
     open: false,
     proxy: {
       '/api': {

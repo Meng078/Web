@@ -7,6 +7,10 @@
  * 基础 URL: http://localhost:3001
  */
 
+// 加载 .env 文件中的环境变量（本地开发用，云端环境变量优先级更高）
+// path 指定为当前文件所在目录，确保无论从哪个工作目录启动都能正确加载
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -14,6 +18,11 @@ const fs = require('fs');
 const path = require('path');
 const { getPool, closePool } = require('./db');
 const { getCachedCourses, setCachedCourses, invalidateCourseCache } = require('./course-cache');
+const jwt = require('jsonwebtoken');
+
+// --------------- JWT 配置 ---------------
+const JWT_SECRET = process.env.JWT_SECRET || 'course-management-dev-secret-change-in-production';
+const JWT_EXPIRES_IN = '7d';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -81,6 +90,47 @@ function parseCourseTime(courseTime) {
   return { weekday: null, time_range: null };
 }
 
+// =================== 认证中间件 ===================
+
+/**
+ * 验证 JWT Token 的中间件
+ * 从 Authorization 头中提取 Bearer Token 并验证
+ */
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      message: '未登录或登录已过期，请重新登录'
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded; // { id, username, user_type }
+    next();
+  } catch (err) {
+    return res.status(401).json({
+      success: false,
+      message: '登录凭证无效，请重新登录'
+    });
+  }
+}
+
+/**
+ * 教师权限校验中间件（需先通过 authMiddleware）
+ */
+function teacherOnlyMiddleware(req, res, next) {
+  if (!req.user || req.user.user_type !== 'teacher') {
+    return res.status(403).json({
+      success: false,
+      message: '权限不足，此操作仅限教师'
+    });
+  }
+  next();
+}
+
 // =================== Auth Routes ===================
 
 /**
@@ -122,6 +172,13 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
+    // 签发 JWT Token
+    const token = jwt.sign(
+      { id: user.id, username: user.username, user_type: user.user_type },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
     return res.json({
       success: true,
       data: {
@@ -129,7 +186,8 @@ app.post('/api/login', async (req, res) => {
         username: user.username,
         name: user.name,
         user_type: user.user_type
-      }
+      },
+      token: token
     });
   } catch (err) {
     console.error('[login] 错误:', err.message);
@@ -187,9 +245,17 @@ app.post('/api/register', async (req, res) => {
       [result.insertId]
     );
 
+    // 签发 JWT Token
+    const token = jwt.sign(
+      { id: newUserRows[0].id, username: newUserRows[0].username, user_type: newUserRows[0].user_type },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
     return res.status(201).json({
       success: true,
-      data: newUserRows[0]
+      data: newUserRows[0],
+      token: token
     });
   } catch (err) {
     console.error('[register] 错误:', err.message);
@@ -292,7 +358,7 @@ app.get('/api/courses/:id', async (req, res) => {
  * 添加新课程
  * Body: { course_name, teacher_name, course_time, course_location, start_date, end_date, start_time, end_time }
  */
-app.post('/api/courses', async (req, res) => {
+app.post('/api/courses', authMiddleware, teacherOnlyMiddleware, async (req, res) => {
   try {
     const {
       course_name, teacher_name, course_time, course_location,
@@ -347,7 +413,7 @@ app.post('/api/courses', async (req, res) => {
  * 更新课程
  * Body: 任何课程字段的子集
  */
-app.put('/api/courses/:id', async (req, res) => {
+app.put('/api/courses/:id', authMiddleware, teacherOnlyMiddleware, async (req, res) => {
   try {
     const courseId = parseInt(req.params.id, 10);
 
@@ -458,7 +524,7 @@ app.put('/api/courses/:id', async (req, res) => {
  * DELETE /api/courses/:id
  * 删除课程
  */
-app.delete('/api/courses/:id', async (req, res) => {
+app.delete('/api/courses/:id', authMiddleware, teacherOnlyMiddleware, async (req, res) => {
   try {
     const courseId = parseInt(req.params.id, 10);
 
@@ -508,7 +574,7 @@ app.delete('/api/courses/:id', async (req, res) => {
  * GET /api/users
  * 获取所有用户（不返回密码字段）
  */
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', authMiddleware, async (req, res) => {
   try {
     const [rows] = await req.db.execute(
       'SELECT id, username, name, user_type, created_at, updated_at FROM users ORDER BY id'
@@ -530,7 +596,7 @@ app.get('/api/users', async (req, res) => {
  * GET /api/users/:id
  * 根据 ID 获取单个用户（不返回密码字段）
  */
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', authMiddleware, async (req, res) => {
   try {
     const userId = parseInt(req.params.id, 10);
 

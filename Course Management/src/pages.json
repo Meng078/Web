@@ -45,14 +45,6 @@
       }
     },
     {
-      "path": "pages/agreement/recharge",
-      "style": {
-        "navigationBarTitleText": "平台充值协议",
-        "navigationBarBackgroundColor": "#ffffff",
-        "navigationBarTextStyle": "black"
-      }
-    },
-    {
       "path": "pages/add/addCourse",
       "style": {
         "navigationStyle": "custom",
@@ -67,7 +59,7 @@
       }
     },
     {
-      "path": "pages/stting/index",
+      "path": "pages/setting/index",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "设置"

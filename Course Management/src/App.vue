@@ -1,19 +1,27 @@
 <script setup>
 import {onHide, onLaunch, onShow} from '@dcloudio/uni-app'
 import { getCoursesAPI } from '@/api/index.js'
+import { getCurrentUser, getUserStorage, setUserStorage } from '@/utils/session.js'
 
 /**
  * ★ 预加载课程数据到前端缓存
  * 在应用启动时立即获取课程数据并存入 localStorage，
  * 当首页（index）挂载时可直接读取缓存，无需等待网络请求
+ *
+ * 使用 getUserStorage/setUserStorage 保证与页面读取的缓存键一致（用户专属键），
+ * 避免 App 写入全局键、页面读取用户键导致预加载失效。
  */
 const CACHE_KEY = 'cachedCourses'
 const CACHE_EXPIRY = 5 * 60 * 1000 // 5 分钟
 
 const preloadCourseData = async () => {
   try {
+    // 未登录时不预加载（请求会因无 token 而失败）
+    const user = getCurrentUser()
+    if (!user) return
+
     // 先检查缓存是否已有效，避免重复请求
-    const cached = uni.getStorageSync(CACHE_KEY)
+    const cached = getUserStorage(CACHE_KEY)
     if (cached && cached.data && Date.now() - cached.timestamp < CACHE_EXPIRY) {
       return // 缓存有效，无需预加载
     }
@@ -23,7 +31,7 @@ const preloadCourseData = async () => {
     const courses = (res.data || res || [])
 
     // 写入缓存
-    uni.setStorageSync(CACHE_KEY, {
+    setUserStorage(CACHE_KEY, {
       data: courses,
       timestamp: Date.now()
     })
@@ -34,10 +42,17 @@ const preloadCourseData = async () => {
 
 onLaunch(() => {
   console.log('App Launch')
-
-  // ★ 应用启动立即开始预加载课程数据 ★
-  // 这比任何页面 onMounted/onShow 都早触发，
-  // 确保用户进入首页时数据已在缓存中
+  // #ifdef H5
+  // 每次启动都默认显示登录页面，而不是上次离开时的页面
+  // 使用 sessionStorage 区分"首次启动"和"页面刷新"：
+  //   - 首次启动（关闭浏览器后重新打开）：重定向到登录页
+  //   - 页面刷新（F5/Ctrl+R）：保持当前页面，不执行任何操作
+  if (!sessionStorage.getItem('appLaunched')) {
+    sessionStorage.setItem('appLaunched', '1');
+    uni.reLaunch({ url: '/pages/login/index' });
+  }
+  // #endif
+  // 预加载课程数据
   preloadCourseData()
 })
 
@@ -86,6 +101,37 @@ page {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.15);
 }
+
+/* H5 端页面切换淡入动画 */
+uni-page-wrapper {
+  animation: pageFadeIn 0.25s ease;
+}
+
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+/* #endif */
+
+/* ================= 微信小程序端全局页面切换动画 ================= */
+/* #ifdef MP-WEIXIN */
+/* 给每个页面根元素添加淡入动画，让页面切换更丝滑 */
+page {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  animation: mpPageFadeIn 0.2s ease;
+}
+
+/* 全局盒模型重置，确保 padding/border 不撑破容器 */
+view, text, image, input, button, textarea, scroll-view {
+  box-sizing: border-box;
+}
+
+@keyframes mpPageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 /* #endif */
 
 /* ================= H5端 PC/桌面端优化 ================= */
@@ -111,7 +157,10 @@ uni-page-wrapper {
   display: block !important;
   width: 100% !important;
   background: #f8fafc !important;
-  /* 默认 overflow: visible，不拦截滚动事件 */
+  /* 滚动隔离：每个页面独立滚动，不影响其他页面 */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 uni-page-body {
@@ -120,7 +169,9 @@ uni-page-body {
   max-width: 100% !important;
   box-shadow: none !important;
   margin: 0 !important;
-  /* 不设固定 height / overflow，内容可自然溢出到 html */
+  /* 滚动隔离：每个页面独立滚动，不影响其他页面 */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 /* uni.showModal 弹窗宽度覆盖 */

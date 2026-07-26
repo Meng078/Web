@@ -11,3 +11,5 @@ https-proxy.js
 start.bat
 stop.bat
 project.private.config.json
+server/mysql-data/
+server/*.pid

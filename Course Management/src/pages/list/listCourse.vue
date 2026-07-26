@@ -3,7 +3,7 @@ import {ref, computed} from 'vue';
 import {onShow, onLoad} from '@dcloudio/uni-app';
 import CourseCard from '@/components/CourseCard.vue';
 import { getCoursesAPI, deleteCourseAPI } from '@/api/index.js';
-import { getCurrentUser } from '@/utils/session.js';
+import { getCurrentUser, getUserStorage } from '@/utils/session.js';
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -128,7 +128,7 @@ const loadCourses = async () => {
   let coursesData = null
 
   try {
-    const cached = uni.getStorageSync(CACHE_KEY)
+    const cached = getUserStorage(CACHE_KEY)
     if (cached && cached.data && Date.now() - cached.timestamp < CACHE_EXPIRY) {
       coursesData = cached.data
     }
@@ -170,7 +170,7 @@ const checkTeacherPermission = () => {
 // ==================== 页面导航 ====================
 
 const goBack = () => {
-  uni.reLaunch({url: '/pages/index/index'});
+  uni.navigateBack({ delta: 1 });
 };
 
 const handleDelete = (item) => {
@@ -241,12 +241,15 @@ onShow(() => {
   // 首次加载由 onLoad 处理
   if (!_loaded) return;
   // 后续从共享缓存读取（已由首页/App 预加载），实现秒级显示
+  // 延迟一帧渲染，让页面切换动画先完成
   const CACHE_KEY = 'cachedCourses'
   const CACHE_EXPIRY = 5 * 60 * 1000
   try {
-    const cached = uni.getStorageSync(CACHE_KEY)
+    const cached = getUserStorage(CACHE_KEY)
     if (cached && cached.data && Date.now() - cached.timestamp < CACHE_EXPIRY) {
-      courses.value = cached.data
+      setTimeout(() => {
+        courses.value = cached.data
+      }, 0);
       return
     }
   } catch (e) { /* 忽略 */ }
@@ -257,37 +260,38 @@ onShow(() => {
 </script>
 
 <template>
-  <view class="page-container">
-    <view class="bg-decoration">
-      <view class="bg-circle bg-circle-1"></view>
-      <view class="bg-circle bg-circle-2"></view>
-    </view>
-
-    <view class="content-wrapper">
-      <view class="header-area">
-        <button class="back-btn" @click="goBack()">
-          <text class="back-icon">←</text>
-        </button>
-        <view class="header-text-group">
-          <text class="main-title">{{ title }}</text>
-          <text class="header-subtitle">管理你的所有课程安排</text>
+  <!-- #ifdef H5 -->
+  <view class="page-h5">
+    <!-- 固定顶部导航栏 -->
+    <view class="topbar-h5">
+      <view class="topbar-inner">
+        <view class="topbar-left-h5">
+          <view class="topbar-back-h5" @click="goBack()">
+            <text class="topbar-back-icon-h5">←</text>
+          </view>
+          <text class="topbar-title-h5">{{ title }}</text>
+        </view>
+        <view class="topbar-add-h5" @click="openAddPage()">
+          <text class="topbar-add-icon-h5">+</text>
+          <text class="topbar-add-text-h5">添加课程</text>
         </view>
       </view>
+    </view>
 
-      <view class="toolbar">
-        <text class="count-text">共 {{ totalCourseCount }} 门课程</text>
-        <button class="header-add-btn" @click="openAddPage()">
-          <text class="add-btn-icon">+</text>
-          <text class="add-btn-text">添加课程</text>
-        </button>
+    <view class="content-h5">
+      <!-- 工具栏 -->
+      <view class="toolbar-h5">
+        <text class="count-text-h5">共 {{ totalCourseCount }} 门课程</text>
       </view>
 
-      <view v-if="isLoading && groupedCourses.length === 0" class="loading-state">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">正在加载课程...</text>
+      <!-- 加载状态 -->
+      <view v-if="isLoading && groupedCourses.length === 0" class="loading-state-h5">
+        <view class="loading-spinner-h5"></view>
+        <text class="loading-text-h5">正在加载课程...</text>
       </view>
 
-      <view v-else-if="groupedCourses.length > 0" class="card-list">
+      <!-- 课程卡片网格 -->
+      <view v-else-if="groupedCourses.length > 0" class="card-grid-h5">
         <CourseCard
           v-for="(item, index) in groupedCourses"
           :key="item.id"
@@ -295,276 +299,491 @@ onShow(() => {
           :showActions="true"
           :grouped="true"
           :style="{ animationDelay: index * 0.06 + 's' }"
-          class="card-item"
+          class="card-item-h5"
           @edit="handleEdit(item)"
           @delete="handleDelete(item)"
         />
       </view>
 
-      <view v-else class="empty-box">
-        <view class="empty-illustration">
-          <text class="empty-emoji">📚</text>
+      <!-- 空状态 -->
+      <view v-else class="empty-box-h5">
+        <view class="empty-illustration-h5">
+          <text class="empty-emoji-h5">📚</text>
         </view>
-        <text class="empty-msg">暂无课程信息</text>
-        <text class="empty-hint">开始添加你的第一门课程吧</text>
-        <button class="empty-action-btn" @click="openAddPage()">
-          <text class="empty-action-icon">+</text>
-          <text>添加课程</text>
-        </button>
+        <text class="empty-msg-h5">暂无课程信息</text>
+        <text class="empty-hint-h5">开始添加你的第一门课程吧</text>
+        <view class="empty-action-btn-h5" @click="openAddPage()">
+          <text class="empty-action-icon-h5">+</text>
+          <text class="empty-action-text-h5">添加课程</text>
+        </view>
       </view>
     </view>
-
   </view>
+  <!-- #endif -->
+
+  <!-- #ifdef MP-WEIXIN -->
+  <view class="page-mp">
+    <!-- 简洁头部 -->
+    <view class="header-mp">
+      <view class="header-back-mp" @click="goBack()">
+        <text class="header-back-icon-mp">←</text>
+      </view>
+      <view class="header-text-group-mp">
+        <text class="header-title-mp">{{ title }}</text>
+        <text class="header-subtitle-mp">管理你的所有课程安排</text>
+      </view>
+      <view class="header-placeholder-mp"></view>
+    </view>
+
+    <view class="content-mp">
+      <!-- 工具栏 -->
+      <view class="toolbar-mp">
+        <text class="count-text-mp">共 {{ totalCourseCount }} 门课程</text>
+        <view class="add-btn-mp" @click="openAddPage()">
+          <text class="add-btn-icon-mp">+</text>
+          <text class="add-btn-text-mp">添加课程</text>
+        </view>
+      </view>
+
+      <!-- 加载状态 -->
+      <view v-if="isLoading && groupedCourses.length === 0" class="loading-state-mp">
+        <view class="loading-spinner-mp"></view>
+        <text class="loading-text-mp">正在加载课程...</text>
+      </view>
+
+      <!-- 课程卡片列表 -->
+      <view v-else-if="groupedCourses.length > 0" class="card-list-mp">
+        <CourseCard
+          v-for="(item, index) in groupedCourses"
+          :key="item.id"
+          :course="item"
+          :showActions="true"
+          :grouped="true"
+          class="card-item-mp"
+          @edit="handleEdit(item)"
+          @delete="handleDelete(item)"
+        />
+      </view>
+
+      <!-- 空状态 -->
+      <view v-else class="empty-box-mp">
+        <view class="empty-illustration-mp">
+          <text class="empty-emoji-mp">📚</text>
+        </view>
+        <text class="empty-msg-mp">暂无课程信息</text>
+        <text class="empty-hint-mp">开始添加你的第一门课程吧</text>
+        <view class="empty-action-btn-mp" @click="openAddPage()">
+          <text class="empty-action-icon-mp">+</text>
+          <text class="empty-action-text-mp">添加课程</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <!-- #endif -->
 </template>
 
 <style scoped lang="scss">
-.page-container {
+/* ===================== H5 PC端样式 ===================== */
+/* #ifdef H5 */
+.page-h5 {
   min-height: 100vh;
-  background-color: #eef2ff;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: var(--status-bar-height);
+  background: #f8fafc;
+  padding-top: 64px;
 }
 
-.bg-decoration {
+.topbar-h5 {
   position: fixed;
   top: 0;
-  right: 0;
-  bottom: 0;
   left: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.bg-circle {
-  position: absolute;
-  border-radius: 50%;
-  /* #ifdef H5 */
-  filter: blur(80px);
-  /* #endif */
-  opacity: 0.4;
-}
-
-.bg-circle-1 {
-  width: 250px;
-  height: 250px;
-  background: #6366f1;
-  top: -80px;
-  right: -80px;
-}
-
-.bg-circle-2 {
-  width: 200px;
-  height: 200px;
-  background: #10b981;
-  bottom: -40px;
-  left: -40px;
-}
-
-.content-wrapper {
-  width: 100%;
-  max-width: 600px;
-  padding: 20px 16px 100px;
-  box-sizing: border-box;
-
-  /* 关键优化：利用环境函数增加底部物理间距，防止被手机底部手势条或浮动按钮遮挡 */
-  /* #ifdef H5 */
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  /* #endif */
-  /* #ifdef MP-WEIXIN */
-  padding-bottom: 100px;
-  /* #endif */
-
-  .card-item {
-    width: 100%;
-    /* 确保子组件操作栏不因内容溢出而被裁剪 */
-    overflow: visible !important;
-  }
-}
-
-.header-area {
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 1000;
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-  padding-top: 4px;
-  position: relative;
-  padding-left: 36px;
-  padding-right: 10px;
-  min-height: 36px;
 
-  .back-btn {
-    position: absolute;
-    left: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.8);
-    /* #ifdef H5 */
-    backdrop-filter: blur(8px);
-    /* #endif */
+  .topbar-inner {
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .topbar-left-h5 {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .topbar-back-h5 {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    /* 重置微信小程序 button 默认样式 */
-    margin: 0;
-    padding: 0;
-    border: none;
-    outline: none;
-    &::after { border: none; }
 
-    &:active {
-      transform: scale(0.9);
-      background: rgba(255, 255, 255, 0.95);
+    &:hover {
+      background: rgba(99, 102, 241, 0.15);
     }
 
-    .back-icon {
+    &:active { transform: scale(0.92); }
+
+    .topbar-back-icon-h5 {
+      font-size: 18px;
+      color: #6366f1;
+      font-weight: 600;
+    }
+  }
+
+  .topbar-title-h5 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .topbar-add-h5 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    user-select: none;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    &:active { transform: scale(0.96); }
+
+    .topbar-add-icon-h5 {
+      font-size: 18px;
+      color: #ffffff;
+      font-weight: 300;
+      line-height: 1;
+    }
+
+    .topbar-add-text-h5 {
       font-size: 15px;
+      color: #ffffff;
+      font-weight: 600;
+    }
+  }
+}
+
+.content-h5 {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 32px 48px;
+  box-sizing: border-box;
+}
+
+.toolbar-h5 {
+  margin-bottom: 24px;
+  padding: 0 4px;
+
+  .count-text-h5 {
+    font-size: 16px;
+    color: #64748b;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+.loading-state-h5 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+  gap: 16px;
+
+  .loading-spinner-h5 {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin-h5 0.8s linear infinite;
+  }
+
+  .loading-text-h5 {
+    font-size: 16px;
+    color: #94a3b8;
+  }
+}
+
+@keyframes spin-h5 { to { transform: rotate(360deg); } }
+
+.card-grid-h5 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .card-item-h5 {
+    width: 100%;
+    overflow: visible;
+    animation: fadeInUp-h5 0.4s ease both;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+      transform: translateY(-4px);
+    }
+  }
+}
+
+@keyframes fadeInUp-h5 {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.empty-box-h5 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+  animation: fadeInUp-h5 0.4s ease;
+
+  .empty-illustration-h5 {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .empty-emoji-h5 {
+    font-size: 56px;
+  }
+
+  .empty-msg-h5 {
+    font-size: 18px;
+    color: #475569;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .empty-hint-h5 {
+    font-size: 15px;
+    color: #94a3b8;
+    margin-bottom: 24px;
+  }
+
+  .empty-action-btn-h5 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 28px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    user-select: none;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    }
+
+    &:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+    }
+
+    .empty-action-icon-h5 {
+      font-size: 22px;
+      font-weight: 300;
+    }
+
+    .empty-action-text-h5 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+}
+/* #endif */
+
+/* ===================== MP-WEIXIN 微信小程序样式 ===================== */
+/* #ifdef MP-WEIXIN */
+.page-mp {
+  width: 100%;
+  min-height: 100vh;
+  background: #eef2ff;
+  padding-top: var(--status-bar-height);
+}
+
+.header-mp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e2e8f0;
+
+  .header-back-mp {
+    width: 36px;
+    height: 36px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.08);
+
+    &:active { transform: scale(0.9); }
+
+    .header-back-icon-mp {
+      font-size: 18px;
       color: #1e293b;
       font-weight: 600;
     }
   }
 
-  .header-text-group {
+  .header-text-group-mp {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
   }
 
-  .main-title {
-    font-size: 22px;
-    font-weight: 800;
+  .header-title-mp {
+    font-size: 16px;
+    font-weight: 700;
     color: #1e293b;
-    line-height: 1.3;
   }
 
-  .header-subtitle {
-    font-size: 12px;
-    color: #94a3b8;
-    font-weight: 400;
-  }
-}
-
-.header-add-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 2px 5px;
-  box-sizing: border-box;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  flex-shrink: 0;
-  /* 重置微信小程序 button 默认样式 — 防止按钮过大 */
-  margin: 0;
-  border: none;
-  outline: none;
-  height: auto;
-  line-height: normal;
-  min-width: 0;
-  overflow: visible;
-  &::after { border: none; }
-  &:active {
-    transform: scale(0.93);
-    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.2);
-  }
-  .add-btn-icon {
-    font-size: 12px;
-    color: #fff;
-    font-weight: 300;
-    line-height: 1;
-  }
-  .add-btn-text {
+  .header-subtitle-mp {
     font-size: 11px;
-    color: #fff;
-    font-weight: 600;
-    line-height: 1;
+    color: #94a3b8;
+  }
+
+  .header-placeholder-mp {
+    width: 36px;
   }
 }
 
-.toolbar {
+.content-mp {
+  padding: 12px 16px 100px;
+  box-sizing: border-box;
+}
+
+.toolbar-mp {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   padding: 0 2px;
 
-  .count-text {
+  .count-text-mp {
     font-size: 13px;
     color: #64748b;
     font-weight: 500;
     background: rgba(255, 255, 255, 0.6);
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
+  }
+
+  .add-btn-mp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 10px;
+    min-height: 44px;
+
+    &:active {
+      opacity: 0.85;
+    }
+
+    .add-btn-icon-mp {
+      font-size: 14px;
+      color: #fff;
+      font-weight: 300;
+      line-height: 1;
+    }
+
+    .add-btn-text-mp {
+      font-size: 13px;
+      color: #fff;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+    }
   }
 }
 
-.loading-state {
+.loading-state-mp {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px 0;
+  padding: 40px 0;
   gap: 10px;
 
-  .loading-spinner {
-    width: 28px;
-    height: 28px;
+  .loading-spinner-mp {
+    width: 32px;
+    height: 32px;
     border: 3px solid #e2e8f0;
     border-top-color: #6366f1;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin-mp 0.8s linear infinite;
   }
 
-  .loading-text {
+  .loading-text-mp {
     font-size: 14px;
     color: #94a3b8;
   }
 }
 
-.card-list {
+@keyframes spin-mp { to { transform: rotate(360deg); } }
+
+.card-list-mp {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
+  gap: 10px;
 
-.card-item {
-  animation: fadeInUp 0.4s ease both;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  .card-item-mp {
+    width: 100%;
+    overflow: visible;
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.empty-box {
+.empty-box-mp {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px 0;
-  animation: fadeInUp 0.4s ease;
+  padding: 40px 0;
+  animation: fadeInUp-mp 0.4s ease;
 
-  .empty-illustration {
+  .empty-illustration-mp {
     width: 70px;
     height: 70px;
     border-radius: 50%;
@@ -572,59 +791,52 @@ onShow(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
-  .empty-emoji {
+  .empty-emoji-mp {
     font-size: 40px;
   }
 
-  .empty-msg {
+  .empty-msg-mp {
     font-size: 15px;
     color: #475569;
     font-weight: 600;
     margin-bottom: 4px;
   }
 
-  .empty-hint {
+  .empty-hint-mp {
     font-size: 13px;
     color: #94a3b8;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
-  .empty-action-btn {
+  .empty-action-btn-mp {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 18px;
+    padding: 10px 20px;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     border-radius: 24px;
     color: #fff;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    min-height: 44px;
 
     &:active {
-      transform: scale(0.95);
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+      opacity: 0.85;
     }
 
-    .empty-action-icon {
+    .empty-action-icon-mp {
       font-size: 18px;
       font-weight: 300;
     }
+
+    .empty-action-text-mp {
+      font-size: 14px;
+      font-weight: 600;
+    }
   }
 }
-
-@media (min-width: 768px) {
-  .page-container {
-    justify-content: center;
-  }
-  .content-wrapper {
-    max-width: 800px;
-  }
-}
-
+/* #endif */
 </style>

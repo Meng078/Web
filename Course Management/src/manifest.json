@@ -9,7 +9,8 @@
       "mode": "history",
       "base": "./"
     },
-    "title": "智慧课表"
+    "title": "智慧课表",
+    "favicon": "favicon.ico"
   },
   "mp-weixin": {
     "appid": "wx9184be4b1f59b23c",

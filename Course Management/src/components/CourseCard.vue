@@ -115,17 +115,20 @@ const hasMultiLocations = computed(() => locationList.value.length > 1);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
   display: flex;
   align-items: stretch;
+  /* #ifdef H5 */
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #f1f5f9;
   cursor: default;
+  /* #endif */
+  border: 1px solid #f1f5f9;
 
+  /* #ifdef H5 */
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
     border-color: #e2e8f0;
   }
-
+  /* #endif */
   &:active {
     transform: translateY(-1px) scale(0.995);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
@@ -246,8 +249,10 @@ const hasMultiLocations = computed(() => locationList.value.length > 1);
       font-size: 11px;
       font-weight: 500;
       border: none;
+      /* #ifdef H5 */
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      /* #endif */
       /* 重置微信小程序 button 默认样式 */
       margin: 0;
       padding: 0;
@@ -259,11 +264,13 @@ const hasMultiLocations = computed(() => locationList.value.length > 1);
         color: #6366f1;
         border: 1px solid #c7d2fe;
 
+        /* #ifdef H5 */
         &:hover {
           background: #eef2ff;
           border-color: #a5b4fc;
           transform: scale(1.03);
         }
+        /* #endif */
 
         &:active {
           background: #e0e7ff;
@@ -276,11 +283,13 @@ const hasMultiLocations = computed(() => locationList.value.length > 1);
         color: #ef4444;
         border: 1px solid #fecaca;
 
+        /* #ifdef H5 */
         &:hover {
           background: #fee2e2;
           border-color: #fca5a5;
           transform: scale(1.03);
         }
+        /* #endif */
 
         &:active {
           background: #fecaca;

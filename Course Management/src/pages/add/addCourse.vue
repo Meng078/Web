@@ -77,11 +77,6 @@ const isAllSelected = computed(() =>
 
 const selectedCount = computed(() => selectedDays.value.length);
 
-const getDayLocation = (day) => {
-  const item = selectedDays.value.find(d => d.day === day);
-  return item ? item.location : '';
-};
-
 const updateDayLocation = (day, location) => {
   const idx = selectedDays.value.findIndex(d => d.day === day);
   if (idx >= 0) {
@@ -108,7 +103,7 @@ const checkTeacherPermission = () => {
   const currentUser = getCurrentUser();
   if (!currentUser || currentUser.user_type !== 'teacher') {
     uni.showToast({ title: '暂无权限', icon: 'none' });
-    setTimeout(() => uni.reLaunch({ url: '/pages/list/listCourse' }), 800);
+    setTimeout(() => uni.navigateBack({ delta: 1 }), 800);
     return false;
   }
   return true;
@@ -321,7 +316,7 @@ const handleSubmit = async () => {
       const toUpdate = selectedDays.value.filter(d => oldDayMap[d.day]);
 
       let successCount = 0;
-      const errors = [];
+      const errorList = [];
 
       // 执行删除
       for (const rec of toDelete) {
@@ -335,7 +330,7 @@ const handleSubmit = async () => {
         if (res.success) {
           successCount++;
         } else {
-          errors.push(`${dayItem.day}：${res.message || '创建失败'}`);
+          errorList.push(`${dayItem.day}：${res.message || '创建失败'}`);
         }
       }
 
@@ -346,7 +341,7 @@ const handleSubmit = async () => {
         if (res.success) {
           successCount++;
         } else {
-          errors.push(`${dayItem.day}：${res.message || '更新失败'}`);
+          errorList.push(`${dayItem.day}：${res.message || '更新失败'}`);
         }
       }
 
@@ -359,22 +354,22 @@ const handleSubmit = async () => {
           duration: 1500
         });
         setTimeout(() => {
-          uni.reLaunch({url: '/pages/list/listCourse'});
+          uni.navigateBack({ delta: 1 });
         }, 1600);
       } else {
-        uni.showToast({title: errors[0] || '修改失败', icon: 'none'});
+        uni.showToast({title: errorList[0] || '修改失败', icon: 'none'});
       }
     } else {
       // === 添加模式：为每个选中天创建记录 ===
       let successCount = 0;
-      const errors = [];
+      const errorList = [];
 
       for (const dayItem of selectedDays.value) {
         const res = await addCourseAPI(buildCourseData(dayItem));
         if (res.success) {
           successCount++;
         } else {
-          errors.push(`${dayItem.day}：${res.message || '创建失败'}`);
+          errorList.push(`${dayItem.day}：${res.message || '创建失败'}`);
         }
       }
 
@@ -387,10 +382,10 @@ const handleSubmit = async () => {
           duration: 1500
         });
         setTimeout(() => {
-          uni.reLaunch({url: '/pages/list/listCourse'});
+          uni.navigateBack({ delta: 1 });
         }, 1600);
       } else {
-        uni.showToast({title: errors[0] || '操作失败', icon: 'none'});
+        uni.showToast({title: errorList[0] || '操作失败', icon: 'none'});
       }
     }
   } catch (e) {
@@ -405,7 +400,7 @@ const handleCancel = () => {
     content: '确定要放弃本次编辑吗？',
     success: (res) => {
       if (res.confirm) {
-        uni.reLaunch({url: '/pages/list/listCourse'});
+        uni.navigateBack({ delta: 1 });
       }
     }
   });
@@ -413,48 +408,47 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <view class="page-container">
-    <view class="bg-decoration">
-      <view class="bg-circle bg-circle-1"></view>
-      <view class="bg-circle bg-circle-2"></view>
+  <!-- #ifdef H5 -->
+  <view class="page-h5">
+    <!-- 固定顶部导航栏 -->
+    <view class="topbar-h5">
+      <view class="topbar-inner">
+        <text class="topbar-title">{{ navTitle }}</text>
+      </view>
     </view>
 
-    <view class="content-wrapper">
-      <view class="navbar">
-        <text class="nav-title">{{ navTitle }}</text>
-      </view>
-
-      <view class="form-section">
+    <view class="content-h5">
+      <view class="form-section-h5">
         <!-- 课程信息 -->
-        <view class="form-card">
-          <view class="card-title">
-            <text class="card-icon">📚</text>
-            <text>课程信息</text>
+        <view class="form-card-h5">
+          <view class="card-title-h5">
+            <text class="card-icon-h5">📚</text>
+            <text class="card-title-text-h5">课程信息</text>
           </view>
-          <view class="input-group">
-            <label class="label-text">
-              <text class="label-icon">✏️</text>
-              课程名称
-              <text class="required">*</text>
+          <view class="input-group-h5">
+            <label class="label-text-h5">
+              <text class="label-icon-h5">✏️</text>
+              <text class="label-content-h5">课程名称</text>
+              <text class="required-h5">*</text>
             </label>
             <input
-                class="input-field"
-                :class="{ 'is-error': errors.subject }"
+                class="input-field-h5"
+                :class="{ 'is-error-h5': errors.subject }"
                 v-model="form.subject"
                 placeholder="例如：高等数学"
                 maxlength="20"
                 @blur="validateField('subject')"
                 @input="clearFieldError('subject')"
             />
-            <text class="error-text" v-if="errors.subject">{{ errors.subject }}</text>
+            <text class="error-text-h5" v-if="errors.subject">{{ errors.subject }}</text>
           </view>
-          <view class="input-group">
-            <label class="label-text">
-              <text class="label-icon">👨‍🏫</text>
-              任课教师
+          <view class="input-group-h5">
+            <label class="label-text-h5">
+              <text class="label-icon-h5">👨‍🏫</text>
+              <text class="label-content-h5">任课教师</text>
             </label>
             <input
-                class="input-field"
+                class="input-field-h5"
                 v-model="form.teacher"
                 placeholder="张老师"
             />
@@ -462,153 +456,153 @@ const handleCancel = () => {
         </view>
 
         <!-- 上课时间 -->
-        <view class="form-card">
-          <view class="card-title">
-            <text class="card-icon">⏰</text>
-            <text>上课时间</text>
+        <view class="form-card-h5">
+          <view class="card-title-h5">
+            <text class="card-icon-h5">⏰</text>
+            <text class="card-title-text-h5">上课时间</text>
           </view>
 
-          <view class="slot-selector-wrapper">
-            <label class="label-text">
-              <text class="label-icon">⚡</text>
-              选择时间单元（快捷填充）
+          <view class="slot-selector-wrapper-h5">
+            <label class="label-text-h5">
+              <text class="label-icon-h5">⚡</text>
+              <text class="label-content-h5">选择时间单元（快捷填充）</text>
             </label>
             <picker mode="selector" :range="timeSlots" range-key="name" @change="onSlotChange">
-              <view class="slot-picker-display" :class="{ 'has-value': selectedSlotIndex >= 0 }">
-                <text class="slot-picker-icon">🕐</text>
-                <text class="slot-picker-text">
+              <view class="slot-picker-display-h5" :class="{ 'has-value-h5': selectedSlotIndex >= 0 }">
+                <text class="slot-picker-icon-h5">🕐</text>
+                <text class="slot-picker-text-h5">
                   {{ selectedSlotIndex >= 0 ? timeSlots[selectedSlotIndex].name : '点击选择时间单元' }}
                 </text>
-                <text class="slot-picker-arrow">▾</text>
+                <text class="slot-picker-arrow-h5">▾</text>
               </view>
             </picker>
           </view>
 
-          <view class="divider-line">
-            <text class="divider-text">或手动选择</text>
+          <view class="divider-line-h5">
+            <text class="divider-text-h5">或手动选择</text>
           </view>
 
           <!-- 开始日期 + 开始时间 -->
-          <view class="date-picker-row">
-            <view class="col-half">
-              <label class="label-text">
-                <text class="label-icon">📅</text>
-                开始日期
-                <text class="required">*</text>
+          <view class="date-picker-row-h5">
+            <view class="col-half-h5">
+              <label class="label-text-h5">
+                <text class="label-icon-h5">📅</text>
+                <text class="label-content-h5">开始日期</text>
+                <text class="required-h5">*</text>
               </label>
               <picker mode="date" :value="form.startDay" @change="onStartDayChange">
-                <view class="picker-display" :class="{ 'has-value': form.startDay, 'is-error': errors.startDay }">
-                  <text class="display-text">{{ form.startDay || '选择日期' }}</text>
+                <view class="picker-display-h5" :class="{ 'has-value-h5': form.startDay, 'is-error-h5': errors.startDay }">
+                  <text class="display-text-h5">{{ form.startDay || '选择日期' }}</text>
                 </view>
               </picker>
-              <text class="error-text" v-if="errors.startDay">{{ errors.startDay }}</text>
+              <text class="error-text-h5" v-if="errors.startDay">{{ errors.startDay }}</text>
             </view>
-            <view class="col-half">
-              <label class="label-text">
-                <text class="label-icon">🕐</text>
-                开始时间
-                <text class="required">*</text>
+            <view class="col-half-h5">
+              <label class="label-text-h5">
+                <text class="label-icon-h5">🕐</text>
+                <text class="label-content-h5">开始时间</text>
+                <text class="required-h5">*</text>
               </label>
               <picker mode="time" :value="form.startTime" @change="onStartTimeChange">
-                <view class="picker-display" :class="{ 'has-value': form.startTime, 'is-error': errors.startTime }">
-                  <text class="display-text">{{ form.startTime }}</text>
+                <view class="picker-display-h5" :class="{ 'has-value-h5': form.startTime, 'is-error-h5': errors.startTime }">
+                  <text class="display-text-h5">{{ form.startTime }}</text>
                 </view>
               </picker>
-              <text class="error-text" v-if="errors.startTime">{{ errors.startTime }}</text>
+              <text class="error-text-h5" v-if="errors.startTime">{{ errors.startTime }}</text>
             </view>
           </view>
 
           <!-- 结束日期 + 结束时间 -->
-          <view class="date-picker-row">
-            <view class="col-half">
-              <label class="label-text">
-                <text class="label-icon">📅</text>
-                结束日期
-                <text class="required">*</text>
+          <view class="date-picker-row-h5">
+            <view class="col-half-h5">
+              <label class="label-text-h5">
+                <text class="label-icon-h5">📅</text>
+                <text class="label-content-h5">结束日期</text>
+                <text class="required-h5">*</text>
               </label>
               <picker mode="date" :value="form.endDay" @change="onEndDayChange">
-                <view class="picker-display" :class="{ 'has-value': form.endDay, 'is-error': errors.endDay }">
-                  <text class="display-text">{{ form.endDay || '选择日期' }}</text>
+                <view class="picker-display-h5" :class="{ 'has-value-h5': form.endDay, 'is-error-h5': errors.endDay }">
+                  <text class="display-text-h5">{{ form.endDay || '选择日期' }}</text>
                 </view>
               </picker>
-              <text class="error-text" v-if="errors.endDay">{{ errors.endDay }}</text>
+              <text class="error-text-h5" v-if="errors.endDay">{{ errors.endDay }}</text>
             </view>
-            <view class="col-half">
-              <label class="label-text">
-                <text class="label-icon">🕐</text>
-                结束时间
-                <text class="required">*</text>
+            <view class="col-half-h5">
+              <label class="label-text-h5">
+                <text class="label-icon-h5">🕐</text>
+                <text class="label-content-h5">结束时间</text>
+                <text class="required-h5">*</text>
               </label>
               <picker mode="time" :value="form.endTime" @change="onEndTimeChange">
-                <view class="picker-display" :class="{ 'has-value': form.endTime, 'is-error': errors.endTime }">
-                  <text class="display-text">{{ form.endTime }}</text>
+                <view class="picker-display-h5" :class="{ 'has-value-h5': form.endTime, 'is-error-h5': errors.endTime }">
+                  <text class="display-text-h5">{{ form.endTime }}</text>
                 </view>
               </picker>
-              <text class="error-text" v-if="errors.endTime">{{ errors.endTime }}</text>
+              <text class="error-text-h5" v-if="errors.endTime">{{ errors.endTime }}</text>
             </view>
           </view>
 
-          <text class="error-text date-range-error" v-if="errors.dateRange">{{ errors.dateRange }}</text>
-          <text class="error-text date-range-error" v-if="errors.timeRange" style="margin-top: 4px;">{{ errors.timeRange }}</text>
+          <text class="error-text-h5 date-range-error-h5" v-if="errors.dateRange">{{ errors.dateRange }}</text>
+          <text class="error-text-h5 date-range-error-h5" v-if="errors.timeRange" style="margin-top: 4px;">{{ errors.timeRange }}</text>
         </view>
 
         <!-- 上课星期 -->
-        <view class="form-card">
-          <view class="card-title">
-            <text class="card-icon">📅</text>
-            <text>上课星期与地点</text>
+        <view class="form-card-h5">
+          <view class="card-title-h5">
+            <text class="card-icon-h5">📅</text>
+            <text class="card-title-text-h5">上课星期与地点</text>
           </view>
 
-          <view class="weekday-section">
-            <label class="label-text">
-              <text class="label-icon">📅</text>
-              选择上课星期
-              <text class="required">*</text>
+          <view class="weekday-section-h5">
+            <label class="label-text-h5">
+              <text class="label-icon-h5">📅</text>
+              <text class="label-content-h5">选择上课星期</text>
+              <text class="required-h5">*</text>
             </label>
 
-            <view class="weekday-grid">
+            <view class="weekday-grid-h5">
               <view
                   v-for="day in weekdayOptions"
                   :key="day.value"
-                  class="weekday-tag"
-                  :class="{ active: selectedDays.some(d => d.day === day.value) }"
+                  class="weekday-tag-h5"
+                  :class="{ 'active-h5': selectedDays.some(d => d.day === day.value) }"
                   @click="toggleDay(day.value)"
               >
-                <text class="weekday-label">{{ day.label }}</text>
+                <text class="weekday-label-h5">{{ day.label }}</text>
               </view>
             </view>
 
-            <view class="weekday-actions">
-              <view class="weekday-action-group">
+            <view class="weekday-actions-h5">
+              <view class="weekday-action-group-h5">
                 <text
-                    class="weekday-action-link"
-                    :class="{ disabled: isAllSelected }"
+                    class="weekday-action-link-h5"
+                    :class="{ 'disabled-h5': isAllSelected }"
                     @click="selectAllDays"
                 >全选</text>
-                <text class="weekday-action-divider">|</text>
+                <text class="weekday-action-divider-h5">|</text>
                 <text
-                    class="weekday-action-link"
-                    :class="{ disabled: selectedDays.length === 0 }"
+                    class="weekday-action-link-h5"
+                    :class="{ 'disabled-h5': selectedDays.length === 0 }"
                     @click="clearDays"
                 >清空</text>
               </view>
-              <text class="selected-count">已选 <text class="count-num">{{ selectedCount }}</text> 天</text>
+              <text class="selected-count-h5">已选 <text class="count-num-h5">{{ selectedCount }}</text> 天</text>
             </view>
           </view>
 
           <!-- 各星期独立地点设置 -->
-          <view v-if="selectedDays.length > 0" class="weekday-locations-section">
-            <view class="divider-line">
-              <text class="divider-text">各星期上课地点</text>
+          <view v-if="selectedDays.length > 0" class="weekday-locations-section-h5">
+            <view class="divider-line-h5">
+              <text class="divider-text-h5">各星期上课地点</text>
             </view>
             <view
                 v-for="dayItem in selectedDays"
                 :key="dayItem.day"
-                class="weekday-location-row"
+                class="weekday-location-row-h5"
             >
-              <text class="location-day-label">{{ dayItem.day }}</text>
+              <text class="location-day-label-h5">{{ dayItem.day }}</text>
               <input
-                  class="location-input"
+                  class="location-input-h5"
                   :value="dayItem.location"
                   @input="updateDayLocation(dayItem.day, $event.detail.value)"
                   placeholder="输入地点，如 1A322"
@@ -618,174 +612,362 @@ const handleCancel = () => {
         </view>
       </view>
 
-      <view class="action-bar">
-        <button class="btn btn-secondary" @click="handleCancel()">取消</button>
-        <button class="btn btn-primary" @click="handleSubmit()">{{ submitBtnText }}</button>
+      <view class="action-bar-h5">
+        <button class="btn-h5 btn-secondary-h5" @click="handleCancel()">取消</button>
+        <button class="btn-h5 btn-primary-h5" @click="handleSubmit()">{{ submitBtnText }}</button>
       </view>
     </view>
   </view>
+  <!-- #endif -->
+
+  <!-- #ifdef MP-WEIXIN -->
+  <view class="page-mp">
+    <!-- 简洁头部 -->
+    <view class="header-mp">
+      <view class="header-back-mp" @click="handleCancel()">
+        <text class="header-back-icon-mp">‹</text>
+      </view>
+      <text class="header-title-mp">{{ navTitle }}</text>
+      <view class="header-placeholder-mp"></view>
+    </view>
+
+    <view class="content-mp">
+      <view class="form-section-mp">
+        <!-- 课程信息 -->
+        <view class="form-card-mp">
+          <view class="card-title-mp">
+            <text class="card-icon-mp">📚</text>
+            <text class="card-title-text-mp">课程信息</text>
+          </view>
+          <view class="input-group-mp">
+            <label class="label-text-mp">
+              <text class="label-icon-mp">✏️</text>
+              <text class="label-content-mp">课程名称</text>
+              <text class="required-mp">*</text>
+            </label>
+            <input
+                class="input-field-mp"
+                :class="{ 'is-error-mp': errors.subject }"
+                v-model="form.subject"
+                placeholder="例如：高等数学"
+                maxlength="20"
+                @blur="validateField('subject')"
+                @input="clearFieldError('subject')"
+            />
+            <text class="error-text-mp" v-if="errors.subject">{{ errors.subject }}</text>
+          </view>
+          <view class="input-group-mp">
+            <label class="label-text-mp">
+              <text class="label-icon-mp">👨‍🏫</text>
+              <text class="label-content-mp">任课教师</text>
+            </label>
+            <input
+                class="input-field-mp"
+                v-model="form.teacher"
+                placeholder="张老师"
+            />
+          </view>
+        </view>
+
+        <!-- 上课时间 -->
+        <view class="form-card-mp">
+          <view class="card-title-mp">
+            <text class="card-icon-mp">⏰</text>
+            <text class="card-title-text-mp">上课时间</text>
+          </view>
+
+          <view class="slot-selector-wrapper-mp">
+            <label class="label-text-mp">
+              <text class="label-icon-mp">⚡</text>
+              <text class="label-content-mp">选择时间单元（快捷填充）</text>
+            </label>
+            <picker mode="selector" :range="timeSlots" range-key="name" @change="onSlotChange">
+              <view class="slot-picker-display-mp" :class="{ 'has-value-mp': selectedSlotIndex >= 0 }">
+                <text class="slot-picker-icon-mp">🕐</text>
+                <text class="slot-picker-text-mp">
+                  {{ selectedSlotIndex >= 0 ? timeSlots[selectedSlotIndex].name : '点击选择时间单元' }}
+                </text>
+                <text class="slot-picker-arrow-mp">▾</text>
+              </view>
+            </picker>
+          </view>
+
+          <view class="divider-line-mp">
+            <text class="divider-text-mp">或手动选择</text>
+          </view>
+
+          <view class="date-picker-row-mp">
+            <view class="col-half-mp">
+              <label class="label-text-mp">
+                <text class="label-icon-mp">📅</text>
+                <text class="label-content-mp">开始日期</text>
+                <text class="required-mp">*</text>
+              </label>
+              <picker mode="date" :value="form.startDay" @change="onStartDayChange">
+                <view class="picker-display-mp" :class="{ 'has-value-mp': form.startDay, 'is-error-mp': errors.startDay }">
+                  <text class="display-text-mp">{{ form.startDay || '选择日期' }}</text>
+                </view>
+              </picker>
+              <text class="error-text-mp" v-if="errors.startDay">{{ errors.startDay }}</text>
+            </view>
+            <view class="col-half-mp">
+              <label class="label-text-mp">
+                <text class="label-icon-mp">🕐</text>
+                <text class="label-content-mp">开始时间</text>
+                <text class="required-mp">*</text>
+              </label>
+              <picker mode="time" :value="form.startTime" @change="onStartTimeChange">
+                <view class="picker-display-mp" :class="{ 'has-value-mp': form.startTime, 'is-error-mp': errors.startTime }">
+                  <text class="display-text-mp">{{ form.startTime }}</text>
+                </view>
+              </picker>
+              <text class="error-text-mp" v-if="errors.startTime">{{ errors.startTime }}</text>
+            </view>
+          </view>
+
+          <view class="date-picker-row-mp">
+            <view class="col-half-mp">
+              <label class="label-text-mp">
+                <text class="label-icon-mp">📅</text>
+                <text class="label-content-mp">结束日期</text>
+                <text class="required-mp">*</text>
+              </label>
+              <picker mode="date" :value="form.endDay" @change="onEndDayChange">
+                <view class="picker-display-mp" :class="{ 'has-value-mp': form.endDay, 'is-error-mp': errors.endDay }">
+                  <text class="display-text-mp">{{ form.endDay || '选择日期' }}</text>
+                </view>
+              </picker>
+              <text class="error-text-mp" v-if="errors.endDay">{{ errors.endDay }}</text>
+            </view>
+            <view class="col-half-mp">
+              <label class="label-text-mp">
+                <text class="label-icon-mp">🕐</text>
+                <text class="label-content-mp">结束时间</text>
+                <text class="required-mp">*</text>
+              </label>
+              <picker mode="time" :value="form.endTime" @change="onEndTimeChange">
+                <view class="picker-display-mp" :class="{ 'has-value-mp': form.endTime, 'is-error-mp': errors.endTime }">
+                  <text class="display-text-mp">{{ form.endTime }}</text>
+                </view>
+              </picker>
+              <text class="error-text-mp" v-if="errors.endTime">{{ errors.endTime }}</text>
+            </view>
+          </view>
+
+          <text class="error-text-mp date-range-error-mp" v-if="errors.dateRange">{{ errors.dateRange }}</text>
+          <text class="error-text-mp date-range-error-mp" v-if="errors.timeRange" style="margin-top: 4px;">{{ errors.timeRange }}</text>
+        </view>
+
+        <!-- 上课星期 -->
+        <view class="form-card-mp">
+          <view class="card-title-mp">
+            <text class="card-icon-mp">📅</text>
+            <text class="card-title-text-mp">上课星期与地点</text>
+          </view>
+
+          <view class="weekday-section-mp">
+            <label class="label-text-mp">
+              <text class="label-icon-mp">📅</text>
+              <text class="label-content-mp">选择上课星期</text>
+              <text class="required-mp">*</text>
+            </label>
+
+            <view class="weekday-grid-mp">
+              <view
+                  v-for="day in weekdayOptions"
+                  :key="day.value"
+                  class="weekday-tag-mp"
+                  :class="{ 'active-mp': selectedDays.some(d => d.day === day.value) }"
+                  @click="toggleDay(day.value)"
+              >
+                <text class="weekday-label-mp">{{ day.label }}</text>
+              </view>
+            </view>
+
+            <view class="weekday-actions-mp">
+              <view class="weekday-action-group-mp">
+                <text
+                    class="weekday-action-link-mp"
+                    :class="{ 'disabled-mp': isAllSelected }"
+                    @click="selectAllDays"
+                >全选</text>
+                <text class="weekday-action-divider-mp">|</text>
+                <text
+                    class="weekday-action-link-mp"
+                    :class="{ 'disabled-mp': selectedDays.length === 0 }"
+                    @click="clearDays"
+                >清空</text>
+              </view>
+              <text class="selected-count-mp">已选 <text class="count-num-mp">{{ selectedCount }}</text> 天</text>
+            </view>
+          </view>
+
+          <view v-if="selectedDays.length > 0" class="weekday-locations-section-mp">
+            <view class="divider-line-mp">
+              <text class="divider-text-mp">各星期上课地点</text>
+            </view>
+            <view
+                v-for="dayItem in selectedDays"
+                :key="dayItem.day"
+                class="weekday-location-row-mp"
+            >
+              <text class="location-day-label-mp">{{ dayItem.day }}</text>
+              <input
+                  class="location-input-mp"
+                  :value="dayItem.location"
+                  @input="updateDayLocation(dayItem.day, $event.detail.value)"
+                  placeholder="输入地点，如 1A322"
+              />
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="action-bar-mp">
+        <button class="btn-mp btn-secondary-mp" @click="handleCancel()">取消</button>
+        <button class="btn-mp btn-primary-mp" @click="handleSubmit()">{{ submitBtnText }}</button>
+      </view>
+    </view>
+  </view>
+  <!-- #endif -->
 </template>
 
 <style scoped lang="scss">
-.page-container {
+/* ===================== H5 PC端样式 ===================== */
+/* #ifdef H5 */
+.page-h5 {
   min-height: 100vh;
-  background-color: #eef2ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  padding-top: var(--status-bar-height);
+  background: #f8fafc;
+  padding-top: 64px;
 }
 
-.bg-decoration {
-  position: absolute;
+.topbar-h5 {
+  position: fixed;
   top: 0;
-  right: 0;
-  bottom: 0;
   left: 0;
-  z-index: 0;
-  pointer-events: none;
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
 
-  .bg-circle {
-    position: absolute;
-    border-radius: 50%;
-    /* #ifdef H5 */
-    filter: blur(60px);
-    /* #endif */
-    opacity: 0.3;
+  .topbar-inner {
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+  }
 
-    &.bg-circle-1 {
-      width: 300px;
-      height: 300px;
-      background: #6366f1;
-      top: -80px;
-      right: -80px;
-    }
-
-    &.bg-circle-2 {
-      width: 220px;
-      height: 220px;
-      background: #10b981;
-      bottom: -40px;
-      left: -40px;
-    }
+  .topbar-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
   }
 }
 
-.content-wrapper {
-  position: relative;
-  z-index: 1;
-  width: 100%;
+.content-h5 {
   max-width: 600px;
-  padding: 20px 14px;
+  margin: 0 auto;
+  padding: 32px 32px 48px;
   box-sizing: border-box;
 }
 
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-
-  .nav-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: #1e293b;
-  }
+.form-section-h5 {
+  margin-bottom: 24px;
 }
 
-.form-section {
-  margin-bottom: 16px;
-}
-
-.form-card {
-  background: rgba(255, 255, 255, 0.95);
-  /* #ifdef H5 */
-  backdrop-filter: blur(12px);
-  /* #endif */
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+.form-card-h5 {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
   transition: box-shadow 0.3s;
 
-  .card-title {
-    font-size: 15px;
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-title-h5 {
+    font-size: 18px;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding-bottom: 8px;
+    gap: 10px;
+    padding-bottom: 16px;
     border-bottom: 2px solid #f1f5f9;
 
-    .card-icon {
-      font-size: 16px;
+    .card-icon-h5 {
+      font-size: 20px;
+    }
+
+    .card-title-text-h5 {
+      font-size: 18px;
+      font-weight: 700;
     }
   }
 }
 
-.input-group {
-  margin-bottom: 10px;
+.input-group-h5 {
+  margin-bottom: 20px;
 }
 
-.row-inputs {
-  display: flex;
-  gap: 10px;
-}
-
-.col-half {
-  flex: 1;
-  min-width: 0;
-}
-
-.label-text {
+.label-text-h5 {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 15px;
   color: #475569;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   font-weight: 600;
 
-  .required {
+  .label-icon-h5 {
+    font-size: 14px;
+  }
+
+  .label-content-h5 {
+    font-size: 15px;
+  }
+
+  .required-h5 {
     color: #ef4444;
     margin-left: 2px;
   }
-
-  .label-icon {
-    font-size: 11px;
-    margin-right: 2px;
-  }
 }
 
-.input-field {
+.input-field-h5 {
   width: 100%;
-  height: 38px;
+  height: 48px;
   background: #f8fafc;
-  border-radius: 8px;
-  padding: 0 10px;
-  font-size: 13px;
-  color: #1e293b;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 16px;
+  color: #0f172a;
   box-sizing: border-box;
-  border: 1.5px solid #e2e8f0;
+  border: 2px solid #e2e8f0;
   transition: all 0.2s;
 
   &:focus {
-    background: #fff;
+    background: #ffffff;
     border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   }
 
-  &.is-error {
+  &.is-error-h5 {
     border-color: #ef4444;
     background: #fef2f2;
 
     &:focus {
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
     }
   }
 
@@ -794,73 +976,65 @@ const handleCancel = () => {
   }
 }
 
-.error-text {
+.error-text-h5 {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   color: #ef4444;
-  margin-top: 2px;
-  padding-left: 2px;
+  margin-top: 6px;
+  padding-left: 4px;
   font-weight: 500;
-  animation: fadeSlideIn 0.2s ease;
+  animation: fadeSlideIn-h5 0.2s ease;
 }
 
-.date-range-error {
-  margin-top: 6px;
-  padding: 6px 10px;
+.date-range-error-h5 {
+  margin-top: 8px;
+  padding: 10px 16px;
   background: #fef2f2;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #fecaca;
   text-align: center;
-  font-size: 11px;
+  font-size: 13px;
 }
 
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes fadeSlideIn-h5 {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.slot-selector-wrapper {
-  margin-bottom: 2px;
+.slot-selector-wrapper-h5 {
+  margin-bottom: 4px;
 }
 
-.slot-picker-display {
+.slot-picker-display-h5 {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 38px;
+  height: 48px;
   background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-  border: 1.5px dashed #a5b4fc;
-  border-radius: 8px;
+  border: 2px dashed #a5b4fc;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s;
-  padding: 0 10px;
+  padding: 0 16px;
   box-sizing: border-box;
 
-  &.has-value {
+  &.has-value-h5 {
     border-style: solid;
     border-color: #6366f1;
     background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%);
   }
 
-  &:active {
-    transform: scale(0.98);
-  }
+  &:active { transform: scale(0.98); }
 
-  .slot-picker-icon {
-    font-size: 14px;
-    margin-right: 6px;
+  .slot-picker-icon-h5 {
+    font-size: 18px;
+    margin-right: 8px;
     flex-shrink: 0;
   }
 
-  .slot-picker-text {
+  .slot-picker-text-h5 {
     flex: 1;
-    font-size: 13px;
+    font-size: 15px;
     color: #4338ca;
     font-weight: 600;
     overflow: hidden;
@@ -868,204 +1042,207 @@ const handleCancel = () => {
     white-space: nowrap;
   }
 
-  .slot-picker-arrow {
-    font-size: 12px;
+  .slot-picker-arrow-h5 {
+    font-size: 14px;
     color: #6366f1;
-    margin-left: 6px;
+    margin-left: 8px;
     flex-shrink: 0;
   }
 }
 
-.divider-line {
+.divider-line-h5 {
   display: flex;
   align-items: center;
   height: 1px;
   background: #e2e8f0;
-  margin: 12px 0;
+  margin: 20px 0;
+  position: relative;
 
-  .divider-text {
-    padding: 0 12px;
-    font-size: 11px;
+  .divider-text-h5 {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 16px;
+    font-size: 13px;
     color: #94a3b8;
-    background: #fff;
+    background: #ffffff;
     flex-shrink: 0;
   }
 }
 
-.date-picker-row {
+.date-picker-row-h5 {
   display: flex;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.picker-display {
+.col-half-h5 {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-display-h5 {
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
-  height: 38px;
+  height: 48px;
   background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
   box-sizing: border-box;
 
-  &.has-value {
+  &:hover {
+    border-color: #c7d2fe;
+  }
+
+  &.has-value-h5 {
     border-color: #c7d2fe;
     background: #eef2ff;
   }
 
-  &.is-error {
+  &.is-error-h5 {
     border-color: #ef4444;
     background: #fef2f2;
   }
 
-  .display-text {
+  .display-text-h5 {
     width: 100%;
-    padding: 0 10px;
-    font-size: 13px;
-    color: #1e293b;
+    padding: 0 16px;
+    font-size: 15px;
+    color: #0f172a;
     text-align: left;
   }
 }
 
-/* ===== 星期选择器 ===== */
-
-.weekday-section {
+.weekday-section-h5 {
   margin-top: 0;
 }
 
-.weekday-grid {
+.weekday-grid-h5 {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
-.weekday-tag {
-  width: 44px;
-  height: 44px;
+.weekday-tag-h5 {
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #f1f5f9;
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 
-  .weekday-label {
-    font-size: 15px;
+  .weekday-label-h5 {
+    font-size: 18px;
     font-weight: 600;
     color: #64748b;
     transition: color 0.25s;
   }
 
-  &:active {
-    transform: scale(0.9);
-  }
+  &:active { transform: scale(0.9); }
 
-  &.active {
+  &.active-h5 {
     background: linear-gradient(135deg, #eef2ff, #e0e7ff);
     border-color: #6366f1;
-    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
     transform: translateY(-2px);
 
-    .weekday-label {
-      color: #4338ca;
-    }
+    .weekday-label-h5 { color: #4338ca; }
   }
 }
 
-.weekday-actions {
+.weekday-actions-h5 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px;
+  padding: 0 4px;
 }
 
-.weekday-action-group {
+.weekday-action-group-h5 {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.weekday-action-link {
-  font-size: 12px;
+.weekday-action-link-h5 {
+  font-size: 14px;
   color: #6366f1;
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s;
   user-select: none;
 
-  &:active {
-    opacity: 0.7;
-  }
+  &:active { opacity: 0.7; }
 
-  &.disabled {
+  &.disabled-h5 {
     color: #cbd5e1;
     cursor: default;
     pointer-events: none;
   }
 }
 
-.weekday-action-divider {
-  font-size: 12px;
+.weekday-action-divider-h5 {
+  font-size: 14px;
   color: #cbd5e1;
 }
 
-.selected-count {
-  font-size: 12px;
+.selected-count-h5 {
+  font-size: 14px;
   color: #94a3b8;
 
-  .count-num {
+  .count-num-h5 {
     color: #6366f1;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 16px;
   }
 }
 
-/* ===== 各星期地点设置 ===== */
-
-.weekday-locations-section {
-  margin-top: 10px;
+.weekday-locations-section-h5 {
+  margin-top: 16px;
 }
 
-.weekday-location-row {
+.weekday-location-row-h5 {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  padding: 4px 0;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 0;
 }
 
-.location-day-label {
-  width: 32px;
-  font-size: 13px;
+.location-day-label-h5 {
+  width: 48px;
+  font-size: 15px;
   font-weight: 700;
   color: #4338ca;
   text-align: center;
   flex-shrink: 0;
 }
 
-.location-input {
+.location-input-h5 {
   flex: 1;
-  height: 34px;
+  height: 44px;
   background: #f8fafc;
-  border-radius: 8px;
-  padding: 0 10px;
-  font-size: 13px;
-  color: #1e293b;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #0f172a;
   box-sizing: border-box;
-  border: 1.5px solid #e2e8f0;
+  border: 2px solid #e2e8f0;
   transition: all 0.2s;
 
   &:focus {
-    background: #fff;
+    background: #ffffff;
     border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   }
 
   &::placeholder {
@@ -1073,29 +1250,27 @@ const handleCancel = () => {
   }
 }
 
-/* ===== 操作按钮 ===== */
-
-.action-bar {
+.action-bar-h5 {
   display: flex;
-  gap: 10px;
+  gap: 16px;
 }
 
-.btn {
+.btn-h5 {
   flex: 1;
-  height: 40px;
-  line-height: 40px;
+  height: 52px;
+  line-height: 52px;
   text-align: center;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: 26px;
+  font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
   transition: transform 0.25s, box-shadow 0.25s;
-  /* 重置微信小程序 button 默认样式 */
   margin: 0;
   padding: 0;
   border: none;
   outline: none;
+
   &::after { border: none; }
 
   &:hover {
@@ -1108,7 +1283,7 @@ const handleCancel = () => {
   }
 }
 
-.btn-primary {
+.btn-primary-h5 {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
 
   &:hover {
@@ -1116,7 +1291,7 @@ const handleCancel = () => {
   }
 }
 
-.btn-secondary {
+.btn-secondary-h5 {
   background: #f1f5f9;
   color: #64748b;
 
@@ -1125,4 +1300,413 @@ const handleCancel = () => {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   }
 }
+/* #endif */
+
+/* ===================== MP-WEIXIN 微信小程序样式 ===================== */
+/* #ifdef MP-WEIXIN */
+.page-mp {
+  width: 100%;
+  min-height: 100vh;
+  background: #eef2ff;
+  padding-top: var(--status-bar-height);
+}
+
+.header-mp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e2e8f0;
+
+  .header-back-mp {
+    width: 36px;
+    height: 36px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.08);
+  }
+
+  .header-back-icon-mp {
+    font-size: 20px;
+    color: #6366f1;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .header-title-mp {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .header-placeholder-mp {
+    width: 36px;
+  }
+}
+
+.content-mp {
+  padding: 12px 14px 32px;
+  box-sizing: border-box;
+}
+
+.form-section-mp {
+  margin-bottom: 12px;
+}
+
+.form-card-mp {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+
+  .card-title-mp {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f1f5f9;
+
+    .card-icon-mp {
+      font-size: 16px;
+    }
+
+    .card-title-text-mp {
+      font-size: 15px;
+      font-weight: 700;
+    }
+  }
+}
+
+.input-group-mp {
+  margin-bottom: 10px;
+}
+
+.label-text-mp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 4px;
+  font-weight: 600;
+
+  .label-icon-mp {
+    font-size: 11px;
+  }
+
+  .label-content-mp {
+    font-size: 12px;
+  }
+
+  .required-mp {
+    color: #ef4444;
+    margin-left: 2px;
+  }
+}
+
+.input-field-mp {
+  width: 100%;
+  min-height: 44px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #1e293b;
+  box-sizing: border-box;
+  border: 1.5px solid #e2e8f0;
+
+  &.is-error-mp {
+    border-color: #ef4444;
+    background: #fef2f2;
+  }
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+}
+
+.error-text-mp {
+  display: block;
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 4px;
+  padding-left: 2px;
+  font-weight: 500;
+}
+
+.date-range-error-mp {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  text-align: center;
+  font-size: 11px;
+}
+
+.slot-selector-wrapper-mp {
+  margin-bottom: 4px;
+}
+
+.slot-picker-display-mp {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 1.5px dashed #a5b4fc;
+  border-radius: 8px;
+  padding: 0 10px;
+  box-sizing: border-box;
+
+  &.has-value-mp {
+    border-style: solid;
+    border-color: #6366f1;
+    background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%);
+  }
+
+  &:active { opacity: 0.85; }
+
+  .slot-picker-icon-mp {
+    font-size: 14px;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  .slot-picker-text-mp {
+    flex: 1;
+    font-size: 13px;
+    color: #4338ca;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .slot-picker-arrow-mp {
+    font-size: 12px;
+    color: #6366f1;
+    margin-left: 6px;
+    flex-shrink: 0;
+  }
+}
+
+.divider-line-mp {
+  display: flex;
+  align-items: center;
+  height: 1px;
+  background: #e2e8f0;
+  margin: 12px 0;
+  position: relative;
+
+  .divider-text-mp {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 12px;
+    font-size: 11px;
+    color: #94a3b8;
+    background: #fff;
+    flex-shrink: 0;
+  }
+}
+
+.date-picker-row-mp {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.col-half-mp {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-display-mp {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  box-sizing: border-box;
+
+  &.has-value-mp {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+  }
+
+  &.is-error-mp {
+    border-color: #ef4444;
+    background: #fef2f2;
+  }
+
+  .display-text-mp {
+    width: 100%;
+    padding: 0 10px;
+    font-size: 13px;
+    color: #1e293b;
+    text-align: left;
+  }
+}
+
+.weekday-section-mp {
+  margin-top: 0;
+}
+
+.weekday-grid-mp {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.weekday-tag-mp {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 2px solid transparent;
+
+  .weekday-label-mp {
+    font-size: 15px;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  &:active { opacity: 0.85; }
+
+  &.active-mp {
+    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    border-color: #6366f1;
+
+    .weekday-label-mp { color: #4338ca; }
+  }
+}
+
+.weekday-actions-mp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.weekday-action-group-mp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weekday-action-link-mp {
+  font-size: 12px;
+  color: #6366f1;
+  font-weight: 600;
+
+  &:active { opacity: 0.7; }
+
+  &.disabled-mp {
+    color: #cbd5e1;
+  }
+}
+
+.weekday-action-divider-mp {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.selected-count-mp {
+  font-size: 12px;
+  color: #94a3b8;
+
+  .count-num-mp {
+    color: #6366f1;
+    font-weight: 700;
+    font-size: 14px;
+  }
+}
+
+.weekday-locations-section-mp {
+  margin-top: 10px;
+}
+
+.weekday-location-row-mp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 4px 0;
+}
+
+.location-day-label-mp {
+  width: 32px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4338ca;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.location-input-mp {
+  flex: 1;
+  min-height: 40px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #1e293b;
+  box-sizing: border-box;
+  border: 1.5px solid #e2e8f0;
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+}
+
+.action-bar-mp {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-mp {
+  flex: 1;
+  min-height: 44px;
+  line-height: 44px;
+  text-align: center;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+
+  &::after { border: none; }
+  &:active { opacity: 0.85; }
+}
+
+.btn-primary-mp {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+.btn-secondary-mp {
+  background: #f1f5f9;
+  color: #64748b;
+}
+/* #endif */
 </style>

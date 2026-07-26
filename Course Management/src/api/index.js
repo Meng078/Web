@@ -11,6 +11,7 @@
 // ==================== 请求配置 ====================
 
 import { apiBaseURL } from './config.js'
+import { getToken, removeUserStorage } from '@/utils/session.js'
 const BASE_URL = apiBaseURL
 
 /**
@@ -20,12 +21,18 @@ const BASE_URL = apiBaseURL
  * 微信小程序中 uni.request() 返回的是 requestTask 而非 Promise，
  * .then() 链式调用会抛出 TypeError，导致请求永远挂起。
  *
+ * ★ 超时保障：使用 Promise.race 添加 JavaScript 层超时，
+ * 防止 uni.request 的 timeout 参数在某些情况下不触发 fail 回调
+ * 导致请求永久挂起。
+ *
  * @param {string} endpoint - API 端点（如 '/courses'）
  * @param {object} options - 请求选项 { method, data, headers }
  * @returns {Promise<object>} 响应数据
  */
 function uniRequest(endpoint, options = {}) {
-  return new Promise((resolve) => {
+  const REQUEST_TIMEOUT = 15000 // 请求超时（毫秒）
+
+  const requestPromise = new Promise((resolve, reject) => {
     const url = `${BASE_URL}${endpoint}`
     const method = (options.method || 'GET').toUpperCase()
     const data = options.data || {}
@@ -43,13 +50,20 @@ function uniRequest(endpoint, options = {}) {
       url: requestUrl,
       method: method,
       data: method === 'GET' ? undefined : JSON.stringify(data),
-      header: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      },
+      header: (() => {
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        }
+        const token = getToken()
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+        return headers
+      })(),
       dataType: 'json',
       // 微信小程序请求超时设置（毫秒）
-      timeout: 15000,
+      timeout: REQUEST_TIMEOUT,
       // ★ callback 方式（兼容 H5 和微信小程序） ★
       success(response) {
         const { statusCode, data: responseData } = response
@@ -79,24 +93,37 @@ function uniRequest(endpoint, options = {}) {
       },
       fail(err) {
         console.error(`[API Error] ${endpoint}:`, err.message || err.errMsg || '未知错误')
-        resolve({
+        reject({
           success: false,
-          message: '网络连接失败，请检查后端服务是否已启动（端口 3001）'
+          message: '网络连接失败，请检查网络连接或后端服务是否正常'
         })
       }
     }
 
     uni.request(requestConfig)
   })
+
+  // JavaScript 层超时保障：确保 Promise 不会永久挂起
+  // 比 uni.request 的 timeout 多 2 秒缓冲，优先让原生超时触发
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject({
+        success: false,
+        message: '请求超时，请检查网络连接或后端服务是否正常'
+      })
+    }, REQUEST_TIMEOUT + 2000)
+  })
+
+  return Promise.race([requestPromise, timeoutPromise])
 }
 
 /**
- * 清除前端课程数据缓存
+ * 清除前端课程数据缓存（用户专属键）
  * 在添加/修改/删除课程后调用，确保首页下次显示时获取最新数据
  */
 function clearCourseCache() {
   try {
-    uni.removeStorageSync('cachedCourses')
+    removeUserStorage('cachedCourses')
   } catch (e) { /* 忽略写入错误 */ }
 }
 
@@ -141,15 +168,6 @@ export function getCoursesAPI() {
 }
 
 /**
- * 获取单个课程
- * @param {number} id - 课程 ID
- * @returns {Promise<object>} 课程详情
- */
-export function getCourseAPI(id) {
-  return uniRequest(`/courses/${id}`, { method: 'GET' })
-}
-
-/**
  * 添加新课程
  * @param {object} courseData - 课程数据
  * @returns {Promise<object>} 添加结果
@@ -187,23 +205,4 @@ export async function deleteCourseAPI(id) {
   const result = await uniRequest(`/courses/${id}`, { method: 'DELETE' })
   if (result.success !== false) clearCourseCache()
   return result
-}
-
-// =================== 用户相关 API ===================
-
-/**
- * 获取所有用户
- * @returns {Promise<object>} 用户列表
- */
-export function getUsersAPI() {
-  return uniRequest('/users', { method: 'GET' })
-}
-
-/**
- * 获取单个用户
- * @param {number} id - 用户 ID
- * @returns {Promise<object>} 用户信息
- */
-export function getUserAPI(id) {
-  return uniRequest(`/users/${id}`, { method: 'GET' })
 }
