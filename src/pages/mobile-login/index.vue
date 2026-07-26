@@ -1,5 +1,15 @@
 <script setup>
 import {computed, onUnmounted, ref} from "vue";
+import {onBackPress} from "@dcloudio/uni-app";
+
+// 拦截返回操作：不管何时何种情况，在登录页面执行返回操作后直接退出/关闭小程序
+onBackPress(() => {
+  // #ifdef MP-WEIXIN
+  uni.exitMiniProgram();
+  // #endif
+  // 阻止默认返回行为，不再进行其他跳转
+  return true;
+});
 
 const phoneNumber = ref("");
 const verificationCode = ref("");
@@ -300,10 +310,11 @@ const goBack = () => {
 .agreement-area {
   display: flex;
   align-items: center;
-  justify-content: center;
   margin: 24px 0 32px;
   gap: 8px;
+  /* 宽度与输入框一致 */
   width: 100%;
+  box-sizing: border-box;
 }
 .custom-checkbox-wrap {
   flex-shrink: 0;
@@ -338,6 +349,9 @@ const goBack = () => {
   color: #64748b;
   line-height: 1.5;
   flex: 1;
+  /* 文字始终在一行显示，不换行 */
+  white-space: nowrap;
+  overflow: visible;
 }
 .link {
   color: #6366f1;
